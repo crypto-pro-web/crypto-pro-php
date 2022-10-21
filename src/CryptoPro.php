@@ -291,10 +291,89 @@ class CryptoPro
 	/**
 	 * Создает отсоединенную (открепленную) подпись сообщения
 	 *
-	 * @return void
+	 * @param   string  $thumbprint   отпечаток сертификата
+	 * @param   string  $messageHash  хеш подписываемого сообщения, сгенерированный по ГОСТ Р 34.11-2012 256 бит
+	 *
+	 * @throws \Exception
+	 * @return string подпись в формате PKCS#7
 	 */
-	public static function createDetachedSignature()
+	public static function createDetachedSignature(string $thumbprint, string $messageHash)
 	{
+		try
+		{
+			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CURRENT_USER_STORE);
+		}
+		catch (\Throwable $e)
+		{
+			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CONTAINER_STORE);
+		}
+
+		try
+		{
+			$cadesAttrs      = new \CPAttribute();
+			$cadesSignedData = new \CPSignedData();
+			$cadesHashedData = new \CPHashedData();
+			$cadesSigner     = new \CPSigner();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при инициализации подписи'));
+		}
+
+		$currentDateTime = (new \DateTime())->format('d.m.Y H:i:s');
+
+		try
+		{
+			$cadesAttrs->set_Name(AUTHENTICATED_ATTRIBUTE_SIGNING_TIME);
+			$cadesAttrs->set_Value($currentDateTime);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при установке времени подписи'));
+		}
+
+		try
+		{
+			$cadesSigner->set_Certificate($cadesCertificate);
+
+			/** @var \CPAttributes $cadesAuthAttrs */
+			$cadesAuthAttrs = $cadesSigner->get_AuthenticatedAttributes();
+			$cadesAuthAttrs->Add($cadesAttrs);
+
+			$cadesSigner->set_Options(CERTIFICATE_INCLUDE_WHOLE_CHAIN);
+
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при установке сертификата'));
+		}
+
+		try
+		{
+			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM_CP_GOST_3411_2012_256);
+			$cadesHashedData->SetHashValue($messageHash);
+
+			// Для получения объекта отсоединенной (открепленной) подписи, необходимо задать любой контент.
+			// Этот баг описан на форуме.
+			// https://www.cryptopro.ru/forum2/default.aspx?g=posts&m=78553#post78553
+			$cadesSignedData->set_Content(123);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при установке хеша'));
+		}
+
+		try
+		{
+			/** @var string $signature */
+			$signature = $cadesSignedData->SignHash($cadesHashedData, $cadesSigner, PKCS7_TYPE);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при подписании данных'));
+		}
+
+		return $signature;
 	}
 
 	/**
