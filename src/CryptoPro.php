@@ -2,6 +2,7 @@
 
 namespace Webmasterskaya\CryptoPro;
 
+use CPAttribute;
 use Webmasterskaya\CryptoPro\Helpers\CertificateHelper;
 use Webmasterskaya\CryptoPro\Helpers\ErrorMessageHelper;
 
@@ -167,23 +168,128 @@ class CryptoPro
 	/**
 	 * Возвращает сертификат по отпечатку
 	 *
-	 * @return void
-	 */
-	public static function getCertificate()
-	{
-	}
-
-	/**
-	 * создает совмещенную (присоединенную) подпись сообщения
+	 * @param   string  $thumbprint  отпечаток сертификата
+	 * @param   bool    $validOnly   проверять сертификат по дате и наличию приватного ключа
 	 *
-	 * @return void
+	 * @throws \Exception
+	 * @return Certificate
 	 */
-	public static function createAttachedSignature()
+	public static function getCertificate(string $thumbprint, bool $validOnly = true)
 	{
+		$thumbprint = trim($thumbprint);
+
+		if (!$thumbprint)
+		{
+			throw new \Exception('Отпечаток не указан');
+		}
+
+		if ($validOnly === true)
+		{
+			$certificates = self::getCertificates();
+		}
+		else
+		{
+			$certificates = self::getAllCertificates();
+		}
+
+		$found = false;
+
+		foreach ($certificates as $certificate)
+		{
+			if ($certificate->thumbprint === $thumbprint)
+			{
+				$found = $certificate;
+				break;
+			}
+		}
+
+		if ($found === false)
+		{
+			throw new \Exception('Сертификат с отпечатком: "' . $thumbprint . '" не найден');
+		}
+
+		return $found;
 	}
 
 	/**
-	 * создает отсоединенную (открепленную) подпись сообщения
+	 * Создает совмещенную (присоединенную) подпись сообщения
+	 *
+	 * @param   string  $thumbprint          отпечаток сертификата
+	 * @param   string  $unencryptedMessage  подписываемое сообщение
+	 *
+	 * @throws \Exception
+	 * @return string подпись в формате PKCS#7
+	 */
+	public static function createAttachedSignature(string $thumbprint, string $unencryptedMessage)
+	{
+		try
+		{
+			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CURRENT_USER_STORE);
+		}
+		catch (\Throwable $e)
+		{
+			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CONTAINER_STORE);
+		}
+
+		try
+		{
+			$cadesAttrs      = new \CPAttribute();
+			$cadesSignedData = new \CPSignedData();
+			$cadesSigner     = new \CPSigner();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при инициализации подписи'));
+		}
+
+		$currentDateTime = (new \DateTime())->format('d.m.Y H:i:s');
+
+		try
+		{
+			$cadesAttrs->set_Name(AUTHENTICATED_ATTRIBUTE_SIGNING_TIME);
+			$cadesAttrs->set_Value($currentDateTime);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при установке времени подписи'));
+		}
+
+		$messageBase64 = base64_encode($unencryptedMessage);
+
+		try
+		{
+			$cadesSigner->set_Certificate($cadesCertificate);
+
+			/** @var \CPAttributes $cadesAuthAttrs */
+			$cadesAuthAttrs = $cadesSigner->get_AuthenticatedAttributes();
+			$cadesAuthAttrs->Add($cadesAttrs);
+
+			$cadesSignedData->set_ContentEncoding(BASE64_TO_BINARY);
+			$cadesSignedData->set_Content($messageBase64);
+
+			$cadesSigner->set_Options(CERTIFICATE_INCLUDE_WHOLE_CHAIN);
+
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при указании данных для подписи'));
+		}
+
+		try
+		{
+			/** @var string $signature */
+			$signature = $cadesSignedData->SignCades($cadesSigner, PKCS7_TYPE);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при подписании данных'));
+		}
+
+		return $signature;
+	}
+
+	/**
+	 * Создает отсоединенную (открепленную) подпись сообщения
 	 *
 	 * @return void
 	 */
@@ -260,31 +366,27 @@ class CryptoPro
 			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при открытии хранилища'));
 		}
 
-		$cadesCertificates      = null;
-		$cadesCertificatesCount = 0;
-
 		try
 		{
 			$cadesCertificates = $cadesStore->get_Certificates();
 
-			if ($cadesCertificates)
+			/**
+			 * Не рассматриваются сертификаты не действительны на данный момент
+			 */
+			if ($validOnly === true)
 			{
-				if ($validOnly === true)
-				{
-					$cadesCertificates = $cadesCertificates->Find(CERTIFICATE_FIND_TIME_VALID);
-				}
-
-				/**
-				 * Не рассматриваются сертификаты, в которых отсутствует закрытый ключ
-				 * или не действительны на данный момент
-				 */
-				if ($withPrivateKey === true)
-				{
-					$cadesCertificates = $cadesCertificates->Find(CERTIFICATE_FIND_EXTENDED_PROPERTY, CAPICOM_PROPID_KEY_PROV_INFO);
-				}
-
-				$cadesCertificatesCount = $cadesCertificates->Count();
+				$cadesCertificates = $cadesCertificates->Find(CERTIFICATE_FIND_TIME_VALID);
 			}
+
+			/**
+			 * Не рассматриваются сертификаты, в которых отсутствует закрытый ключ
+			 */
+			if ($withPrivateKey === true)
+			{
+				$cadesCertificates = $cadesCertificates->Find(CERTIFICATE_FIND_EXTENDED_PROPERTY, CAPICOM_PROPID_KEY_PROV_INFO);
+			}
+
+			$cadesCertificatesCount = $cadesCertificates->Count();
 		}
 		catch (\Throwable $e)
 		{
@@ -323,6 +425,62 @@ class CryptoPro
 		$cadesStore->Close();
 
 		return $certificates;
+	}
+
+	protected static function getCadesCertificateFromStore(string $thumbprint, int $storeLocation, string $storeName = 'My')
+	{
+		try
+		{
+			$cadesStore = new \CPStore();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при попытке доступа к хранилищу'));
+		}
+
+		try
+		{
+			$cadesStore->Open($storeLocation, $storeName, STORE_OPEN_MAXIMUM_ALLOWED);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при открытии хранилища'));
+		}
+
+		try
+		{
+			$cadesCertificates      = $cadesStore->get_Certificates();
+			$cadesCertificatesCount = $cadesCertificates->Count();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка получения списка сертификатов из хранилища'));
+		}
+
+		if (!$cadesCertificatesCount)
+		{
+			throw new \Exception('Нет доступных сертификатов в хранилище');
+		}
+
+		try
+		{
+			$cadesCertificates = $cadesCertificates->Find(CERTIFICATE_FIND_SHA1_HASH, $thumbprint);
+
+			$cadesCertificatesCount = $cadesCertificates->Count();
+
+			if (!$cadesCertificatesCount)
+			{
+				throw new \Exception('Сертификат с отпечатком: "' . $thumbprint . '" не найден в хранилище');
+			}
+
+			$cadesCertificate = $cadesCertificates->Item(1);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при получении сертификата из хранилища'));
+		}
+
+		return $cadesCertificate;
 	}
 
 	protected static function mergeToAvailableCertificates(array &$availableCertificates = [], array $mergedCertificates = [])
