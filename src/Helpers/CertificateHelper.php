@@ -67,4 +67,16 @@ class CertificateHelper
 
 		return [];
 	}
+
+	public static function extractCommonName($subjectName)
+	{
+		$subjectMatch = [];
+		$commonName   = null;
+		if (preg_match('/CN="?(.+?)"?(?:,|$)/', $subjectName, $subjectMatch))
+		{
+			$commonName = preg_replace('/"{2}/g', '"', $subjectMatch[1]);
+		}
+
+		return $commonName;
+	}
 }

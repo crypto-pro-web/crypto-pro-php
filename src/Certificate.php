@@ -4,6 +4,34 @@ namespace Webmasterskaya\CryptoPro;
 
 class Certificate
 {
+
+	public $_cadesCertificate;
+	public $name;
+	public $issuerName;
+	public $subjectName;
+	public $thumbprint;
+	public $validFrom;
+	public $validTo;
+
+	public function __construct(
+		\CPCertificate $cadesCertificate,
+		string $name,
+		string $issuerName,
+		string $subjectName,
+		string $thumbprint,
+		string $validFrom,
+		string $validTo
+	)
+	{
+		$this->_cadesCertificate = $cadesCertificate;
+		$this->name              = $name;
+		$this->issuerName        = $issuerName;
+		$this->subjectName       = $subjectName;
+		$this->thumbprint        = $thumbprint;
+		$this->validFrom         = $validFrom;
+		$this->validTo           = $validTo;
+	}
+
 	/**
 	 * возвращает флаг действительности сертификата
 	 *
