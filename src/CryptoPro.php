@@ -2,7 +2,6 @@
 
 namespace Webmasterskaya\CryptoPro;
 
-use CPAttribute;
 use Webmasterskaya\CryptoPro\Helpers\CertificateHelper;
 use Webmasterskaya\CryptoPro\Helpers\ErrorMessageHelper;
 
@@ -379,19 +378,165 @@ class CryptoPro
 	/**
 	 * добавляет совмещенную (присоединенную) подпись к раннее подписанному документу (реализует метод coSign)
 	 *
-	 * @return void
+	 * @return string
 	 */
-	public static function addAttachedSignature()
+	public static function addAttachedSignature(string $thumbprint, string $signedMessage)
 	{
+		try
+		{
+			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CURRENT_USER_STORE);
+		}
+		catch (\Throwable $e)
+		{
+			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CONTAINER_STORE);
+		}
+
+		try
+		{
+			$cadesAttrs      = new \CPAttribute();
+			$cadesSignedData = new \CPSignedData();
+			$cadesSigner     = new \CPSigner();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при инициализации подписи'));
+		}
+
+		$currentDateTime = (new \DateTime())->format('d.m.Y H:i:s');
+
+		try
+		{
+			$cadesAttrs->set_Name(AUTHENTICATED_ATTRIBUTE_SIGNING_TIME);
+			$cadesAttrs->set_Value($currentDateTime);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при установке времени подписи'));
+		}
+
+		$messageBase64 = base64_encode($signedMessage);
+
+		try
+		{
+			$cadesSigner->set_Certificate($cadesCertificate);
+
+			/** @var \CPAttributes $cadesAuthAttrs */
+			$cadesAuthAttrs = $cadesSigner->get_AuthenticatedAttributes();
+			$cadesAuthAttrs->Add($cadesAttrs);
+
+			$cadesSignedData->set_ContentEncoding(BASE64_TO_BINARY);
+			$cadesSignedData->set_Content($messageBase64);
+
+			$cadesSigner->set_Options(CERTIFICATE_INCLUDE_WHOLE_CHAIN);
+
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при указании данных для подписи'));
+		}
+
+		try
+		{
+			$cadesSignedData->VerifyCades($signedMessage, PKCS7_TYPE);
+			/** @var string $signature */
+			$signature = $cadesSignedData->CoSignCades($cadesSigner, PKCS7_TYPE);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при подписании данных'));
+		}
+
+		return $signature;
 	}
 
 	/**
-	 * добавляет отсоединенную (открепленную) подпись к раннее подписанному документу (реализует метод coSign)
+	 * Добавляет отсоединенную (открепленную) подпись к раннее подписанному документу (реализует метод coSign)
 	 *
-	 * @return void
+	 * @param   string  $thumbprint     отпечаток сертификата
+	 * @param   string  $signedMessage  подписанное сообщение
+	 * @param   string  $messageHash    хеш подписываемого сообщения, сгенерированный по ГОСТ Р 34.11-2012 256 бит
+	 *
+	 * @throws \Exception
+	 * @return string подпись в формате PKCS#7
 	 */
-	public static function addDetachedSignature()
+	public static function addDetachedSignature(string $thumbprint, string $signedMessage, string $messageHash)
 	{
+		try
+		{
+			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CURRENT_USER_STORE);
+		}
+		catch (\Throwable $e)
+		{
+			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CONTAINER_STORE);
+		}
+
+		try
+		{
+			$cadesAttrs      = new \CPAttribute();
+			$cadesSignedData = new \CPSignedData();
+			$cadesHashedData = new \CPHashedData();
+			$cadesSigner     = new \CPSigner();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при инициализации подписи'));
+		}
+
+		$currentDateTime = (new \DateTime())->format('d.m.Y H:i:s');
+
+		try
+		{
+			$cadesAttrs->set_Name(AUTHENTICATED_ATTRIBUTE_SIGNING_TIME);
+			$cadesAttrs->set_Value($currentDateTime);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при установке времени подписи'));
+		}
+
+		try
+		{
+			$cadesSigner->set_Certificate($cadesCertificate);
+
+			/** @var \CPAttributes $cadesAuthAttrs */
+			$cadesAuthAttrs = $cadesSigner->get_AuthenticatedAttributes();
+			$cadesAuthAttrs->Add($cadesAttrs);
+
+			$cadesSigner->set_Options(CERTIFICATE_INCLUDE_WHOLE_CHAIN);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при установке сертификата'));
+		}
+
+		try
+		{
+			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM_CP_GOST_3411_2012_256);
+			$cadesHashedData->SetHashValue($messageHash);
+
+			// Для получения объекта отсоединенной (открепленной) подписи, необходимо задать любой контент.
+			// Этот баг описан на форуме.
+			// https://www.cryptopro.ru/forum2/default.aspx?g=posts&m=78553#post78553
+			$cadesSignedData->set_Content(123);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при установке хеша'));
+		}
+
+		try
+		{
+			$cadesSignedData->VerifyHash($cadesHashedData, $signedMessage, PKCS7_TYPE);
+
+			/** @var string $signature */
+			$signature = $cadesSignedData->CoSignHash($cadesHashedData, $cadesSigner, PKCS7_TYPE);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при подписании данных'));
+		}
+
+		return $signature;
 	}
 
 	/**
@@ -404,12 +549,47 @@ class CryptoPro
 	}
 
 	/**
-	 * создает хеш сообщения по ГОСТ Р 34.11-2012 256 бит
+	 * Создает хеш сообщения по ГОСТ Р 34.11-2012 256 бит
+	 *
+	 * @param   string  $unencryptedMessage  сообщение для хеширования
 	 *
 	 * @return void
 	 */
-	public static function createHash()
+	public static function createHash(string $unencryptedMessage)
 	{
+		try
+		{
+			$cadesHashedData = new \CPHashedData();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при инициализации хэширования'));
+		}
+
+		$messageBase64 = base64_encode($unencryptedMessage);
+
+		try
+		{
+			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM_CP_GOST_3411_2012_256);
+			$cadesHashedData->set_DataEncoding(BASE64_TO_BINARY);
+			$cadesHashedData->Hash($messageBase64);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при установке хэширования'));
+		}
+
+		try
+		{
+			/** @var string $hash */
+			$hash = $cadesHashedData->get_Value();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при создании хэша'));
+		}
+
+		return $hash;
 	}
 
 	/**
