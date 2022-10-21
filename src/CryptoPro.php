@@ -8,8 +8,11 @@ use Webmasterskaya\CryptoPro\Helpers\ErrorMessageHelper;
 class CryptoPro
 {
 	/**
-	 * возвращает список сертификатов, доступных пользователю в системе
+	 * Возвращает список сертификатов, доступных пользователю в системе
 	 *
+	 * @param   bool  $resetCache  Сбросить кэш. true - повторно получить список сертификатов из хранилища
+	 *
+	 * @throws \Exception
 	 * @return void
 	 */
 	public static function getUserCertificates(bool $resetCache = false)
@@ -17,15 +20,18 @@ class CryptoPro
 		static $certificates;
 		if ($resetCache === true || !isset($certificates))
 		{
-			$certificates = self::getCertificatesFromStore(CAPICOM_CURRENT_USER_STORE, CAPICOM_MY_STORE);
+			$certificates = self::getCertificatesFromStore(CURRENT_USER_STORE);
 		}
 
 		return $certificates;
 	}
 
 	/**
-	 * возвращает список сертификатов, доступных пользователю в системе, в том числе просроченные и без закрытого ключа
+	 * Возвращает список сертификатов, доступных пользователю в системе, в том числе просроченные и без закрытого ключа
 	 *
+	 * @param   bool  $resetCache  Сбросить кэш. true - повторно получить список сертификатов из хранилища
+	 *
+	 * @throws \Exception
 	 * @return void
 	 */
 	public static function getAllUserCertificates(bool $resetCache = false)
@@ -33,15 +39,18 @@ class CryptoPro
 		static $certificates;
 		if ($resetCache === true || !isset($certificates))
 		{
-			$certificates = self::getCertificatesFromStore(CAPICOM_CURRENT_USER_STORE, CAPICOM_MY_STORE, false, false);
+			$certificates = self::getCertificatesFromStore(CURRENT_USER_STORE, MY_STORE, false, false);
 		}
 
 		return $certificates;
 	}
 
 	/**
-	 * возвращает список сертификатов, из закрытых ключей и/или сертификаты не установленные всистеме*
+	 * Возвращает список сертификатов, из закрытых ключей и/или сертификаты не установленные всистеме*
 	 *
+	 * @param   bool  $resetCache  Сбросить кэш. true - повторно получить список сертификатов из хранилища
+	 *
+	 * @throws \Exception
 	 * @return void
 	 */
 	public static function getContainerCertificates(bool $resetCache = false)
@@ -49,15 +58,18 @@ class CryptoPro
 		static $certificates;
 		if ($resetCache === true || !isset($certificates))
 		{
-			$certificates = self::getCertificatesFromStore(CADESCOM_CONTAINER_STORE, CAPICOM_MY_STORE);
+			$certificates = self::getCertificatesFromStore(CONTAINER_STORE);
 		}
 
 		return $certificates;
 	}
 
 	/**
-	 * возвращает список сертификатов, из закрытых ключей и/или сертификаты не установленные всистеме*, в том числе просроченные и без закрытого ключа
+	 * Возвращает список сертификатов, из закрытых ключей и/или сертификаты не установленные всистеме*, в том числе просроченные и без закрытого ключа
 	 *
+	 * @param   bool  $resetCache  Сбросить кэш. true - повторно получить список сертификатов из хранилища
+	 *
+	 * @throws \Exception
 	 * @return void
 	 */
 	public static function getAllContainerCertificates(bool $resetCache = false)
@@ -65,12 +77,19 @@ class CryptoPro
 		static $certificates;
 		if ($resetCache === true || !isset($certificates))
 		{
-			$certificates = self::getCertificatesFromStore(CADESCOM_CONTAINER_STORE, CAPICOM_MY_STORE, false, false);
+			$certificates = self::getCertificatesFromStore(CONTAINER_STORE, MY_STORE, false, false);
 		}
 
 		return $certificates;
 	}
 
+	/**
+	 * Возвращает список сертификатов, доступных пользователю из пользовательского хранилища и закрытых ключей, не установленных в системе
+	 *
+	 * @param   bool  $resetCache  Сбросить кэш. true - повторно получить список сертификатов из хранилища
+	 *
+	 * @return array
+	 */
 	public static function getCertificates(bool $resetCache = false)
 	{
 		static $certificates;
@@ -104,6 +123,14 @@ class CryptoPro
 		return $certificates;
 	}
 
+	/**
+	 * Возвращает список сертификатов, доступных пользователю из пользовательского хранилища и закрытых ключей,
+	 * не установленных в системе, без фильтрации по дате и наличию приватного ключа
+	 *
+	 * @param   bool  $resetCache  Сбросить кэш. true - повторно получить список сертификатов из хранилища
+	 *
+	 * @return array
+	 */
 	public static function getAllCertificates(bool $resetCache = false)
 	{
 		static $certificates;
@@ -138,7 +165,7 @@ class CryptoPro
 	}
 
 	/**
-	 * возвращает сертификат по отпечатку
+	 * Возвращает сертификат по отпечатку
 	 *
 	 * @return void
 	 */
@@ -210,7 +237,7 @@ class CryptoPro
 	}
 
 	protected static function getCertificatesFromStore(
-		int $storeLocation, string $storeName, bool $validOnly = true, bool $withPrivateKey = true
+		int $storeLocation, string $storeName = 'My', bool $validOnly = true, bool $withPrivateKey = true
 	)
 	{
 		$certificates = [];
