@@ -8,8 +8,18 @@ use Webmasterskaya\CryptoPro\Tags\TagsTranslationsInterface;
 
 class CertificateHelper
 {
-	public static function parseCertInfo(TagsTranslationsInterface $tagsTranslations, string $rawInfo)
+	public static function parseCertInfo($tagsTranslations, string $rawInfo)
 	{
+		if (!is_subclass_of($tagsTranslations, TagsTranslationsInterface::class))
+		{
+			throw new \TypeError(
+				sprintf(
+					'Argument 1 passed to %s::parseCertInfo() must be an instance of \Webmasterskaya\CryptoPro\Tags\TagsTranslationsInterface, instance of %s given.',
+					get_called_class(), $tagsTranslations
+				)
+			);
+		}
+
 		$extractedEntities = [];
 
 		preg_match_all('/([а-яА-Яa-zA-Z0-9\s.]+)=(?:("[^"]+?")|(.+?))(?:,|$)/', $rawInfo, $extractedEntities, PREG_SET_ORDER, 0);

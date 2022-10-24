@@ -2,6 +2,14 @@
 
 namespace Webmasterskaya\CryptoPro;
 
+use Webmasterskaya\CryptoPro\Constants\OIDsDictionary;
+use Webmasterskaya\CryptoPro\Helpers\ArrayHelper;
+use Webmasterskaya\CryptoPro\Helpers\CertificateHelper;
+use Webmasterskaya\CryptoPro\Helpers\ErrorMessageHelper;
+use Webmasterskaya\CryptoPro\Tags\IssuerTagsTranslations;
+use Webmasterskaya\CryptoPro\Tags\SubjectTagsTranslations;
+use Webmasterskaya\CryptoPro\Tags\TagsTranslationsInterface;
+
 class Certificate
 {
 
@@ -35,19 +43,51 @@ class Certificate
 	/**
 	 * возвращает флаг действительности сертификата
 	 *
-	 * @return void
+	 * @throws \Exception
+	 * @return bool
 	 */
 	public function isValid()
 	{
+		try
+		{
+			$isValid = $this->_cadesCertificate->IsValid();
+			$isValid = (bool) $isValid->get_Result();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при проверке сертификата'));
+		}
+
+		return $isValid;
 	}
 
 	/**
 	 * возвращает указанное внутренее свойство у сертификата в формате Cades
 	 *
-	 * @return void
+	 * @param   string  $propName  наименование свойства
+	 *
+	 * @throws \Exception
+	 * @return mixed
 	 */
-	public function getCadesProp()
+	public function getCadesProp(string $propName)
 	{
+		try
+		{
+			if (method_exists($this->_cadesCertificate, 'get_' . $propName))
+			{
+				$propertyValue = call_user_func([$this->_cadesCertificate, 'get_' . $propName]);
+			}
+			else
+			{
+				throw new \Exception();
+			}
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при обращении к свойству сертификата'));
+		}
+
+		return $propertyValue;
 	}
 
 	/**
@@ -62,54 +102,160 @@ class Certificate
 	/**
 	 * возвращает информацию об алгоритме сертификата
 	 *
-	 * @return void
+	 * @throws \Exception
+	 * @return AlgorithmInfoInterface
 	 */
 	public function getAlgorithm()
 	{
+		try
+		{
+			$cadesPublicKey          = $this->_cadesCertificate->PublicKey();
+			$cadesPublicKeyAlgorithm = $cadesPublicKey->get_Algorithm();
+			$algorithmInfo           = new class(
+				$cadesPublicKeyAlgorithm->get_FriendlyName(),
+				$cadesPublicKeyAlgorithm->get_Value()) extends AbstractAlgorithmInfo {
+			};
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при получении алгоритма'));
+		}
+
+		return $algorithmInfo;
 	}
 
 	/**
 	 * возвращает расшифрованную информацию о владельце сертификата
 	 *
-	 * @return void
+	 * @throws \Exception
+	 * @return array|array[]
 	 */
 	public function getOwnerInfo()
 	{
+		return $this->getInfo(SubjectTagsTranslations::class, 'SubjectName');
+	}
+
+	/**
+	 * @param   string  $tags
+	 * @param   string  $entitiesPath
+	 *
+	 * @throws \Exception
+	 * @return array|array[]
+	 */
+	protected function getInfo(string $tags, string $entitiesPath)
+	{
+		if (!is_subclass_of($tags, TagsTranslationsInterface::class))
+		{
+			throw new \TypeError(
+				sprintf(
+					'Argument 1 passed to %s::getInfo() must be an instance of \Webmasterskaya\CryptoPro\Tags\TagsTranslationsInterface, instance of %s given.',
+					get_called_class(), $tags
+				)
+			);
+		}
+
+		{
+			try
+			{
+				$entities = $this->getCadesProp($entitiesPath);
+			}
+			catch (\Throwable $e)
+			{
+				throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при извлечении информации из сертификата'));
+			}
+		}
+
+		return CertificateHelper::parseCertInfo($tags, $entities);
 	}
 
 	/**
 	 * возвращает расшифрованную информацию об издателе сертификата
 	 *
-	 * @return void
+	 * @throws \Exception
+	 * @return array|array[]
 	 */
 	public function getIssuerInfo()
 	{
+		return $this->getInfo(IssuerTagsTranslations::class, 'IssuerName');
 	}
 
 	/**
 	 * возвращает ОИД'ы сертификата
 	 *
-	 * @return void
+	 * @return array
 	 */
 	public function getExtendedKeyUsage()
 	{
+		$OIDs = [];
+
+		try
+		{
+			$cadesExtendedKeysUsage      = $this->_cadesCertificate->ExtendedKeyUsage();
+			$cadesExtendedKeysUsage      = $cadesExtendedKeysUsage->get_EKUs();
+			$cadesExtendedKeysUsageCount = $cadesExtendedKeysUsage->get_Count();
+
+			if ($cadesExtendedKeysUsageCount > 0)
+			{
+				while ($cadesExtendedKeysUsageCount)
+				{
+					$cadesExtendedKeyUsage = $cadesExtendedKeysUsage->get_Item($cadesExtendedKeysUsageCount);
+					$OIDs[]                = $cadesExtendedKeyUsage->get_OID();
+
+					$cadesExtendedKeysUsageCount--;
+				}
+			}
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, "Ошибка при получении ОИД'ов"));
+		}
+
+		return $OIDs;
 	}
 
 	/**
 	 * возвращает расшифрованные ОИД'ы
 	 *
-	 * @return void
+	 * @return array
 	 */
 	public function getDecodedExtendedKeyUsage()
 	{
+		$certOIDs = $this->getExtendedKeyUsage();
+
+		$decodedOIDs = [];
+
+		foreach ($certOIDs as $OID)
+		{
+			$decodedOIDs[$OID] = OIDsDictionary::MAP[$OID] ?? null;
+		}
+
+		return $decodedOIDs;
 	}
 
 	/**
 	 * проверяет наличие ОИД'а (ОИД'ов) у сертификата
 	 *
-	 * @return void
+	 * @param   string|array  $OIDs
+	 *
+	 * @throws \Exception
+	 * @return bool
 	 */
-	public function hasExtendedKeyUsage()
+	public function hasExtendedKeyUsage($OIDs)
 	{
+		$certOIDs = $this->getExtendedKeyUsage();
+
+		if (is_string($OIDs))
+		{
+			$OIDs = [$OIDs];
+		}
+
+		if (!is_array($OIDs))
+		{
+			$OIDs = (array) $OIDs;
+		}
+
+		return ArrayHelper::every($OIDs, function ($oidToCheck) use ($certOIDs) {
+			return in_array($oidToCheck, $certOIDs);
+		});
 	}
 }
