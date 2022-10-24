@@ -364,7 +364,6 @@ class CryptoPro
 
 		try
 		{
-			/** @var string $signature */
 			$signature = $cadesSignedData->SignHash($cadesHashedData, $cadesSigner, PKCS7_TYPE);
 		}
 		catch (\Throwable $e)
@@ -438,7 +437,6 @@ class CryptoPro
 		try
 		{
 			$cadesSignedData->VerifyCades($signedMessage, PKCS7_TYPE);
-			/** @var string $signature */
 			$signature = $cadesSignedData->CoSignCades($cadesSigner, PKCS7_TYPE);
 		}
 		catch (\Throwable $e)
@@ -528,7 +526,6 @@ class CryptoPro
 		{
 			$cadesSignedData->VerifyHash($cadesHashedData, $signedMessage, PKCS7_TYPE);
 
-			/** @var string $signature */
 			$signature = $cadesSignedData->CoSignHash($cadesHashedData, $cadesSigner, PKCS7_TYPE);
 		}
 		catch (\Throwable $e)
