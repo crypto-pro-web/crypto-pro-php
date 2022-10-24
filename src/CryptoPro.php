@@ -7,6 +7,8 @@ use Webmasterskaya\CryptoPro\Helpers\ErrorMessageHelper;
 
 class CryptoPro
 {
+	protected const CP_MY_STORE = 'My';
+
 	/**
 	 * Возвращает список сертификатов, доступных пользователю в системе
 	 *
@@ -39,7 +41,7 @@ class CryptoPro
 		static $certificates;
 		if ($resetCache === true || !isset($certificates))
 		{
-			$certificates = self::getCertificatesFromStore(CURRENT_USER_STORE, MY_STORE, false, false);
+			$certificates = self::getCertificatesFromStore(CURRENT_USER_STORE, self::CP_MY_STORE, false, false);
 		}
 
 		return $certificates;
@@ -77,7 +79,7 @@ class CryptoPro
 		static $certificates;
 		if ($resetCache === true || !isset($certificates))
 		{
-			$certificates = self::getCertificatesFromStore(CONTAINER_STORE, MY_STORE, false, false);
+			$certificates = self::getCertificatesFromStore(CONTAINER_STORE, self::CP_MY_STORE, false, false);
 		}
 
 		return $certificates;
@@ -213,13 +215,14 @@ class CryptoPro
 	/**
 	 * Создает совмещенную (присоединенную) подпись сообщения
 	 *
-	 * @param   string  $thumbprint          отпечаток сертификата
-	 * @param   string  $unencryptedMessage  подписываемое сообщение
+	 * @param   string       $thumbprint          отпечаток сертификата
+	 * @param   string       $unencryptedMessage  подписываемое сообщение
+	 * @param   string|null  $pin                 пин-код доступа к закрытому ключу
 	 *
 	 * @throws \Exception
 	 * @return string подпись в формате PKCS#7
 	 */
-	public static function createAttachedSignature(string $thumbprint, string $unencryptedMessage)
+	public static function createAttachedSignature(string $thumbprint, string $unencryptedMessage, string $pin = null)
 	{
 		try
 		{
@@ -257,6 +260,11 @@ class CryptoPro
 
 		try
 		{
+			if (!empty($pin))
+			{
+				$cadesSigner->set_KeyPin($pin);
+			}
+
 			$cadesSigner->set_Certificate($cadesCertificate);
 
 			/** @var \CPAttributes $cadesAuthAttrs */
@@ -290,13 +298,14 @@ class CryptoPro
 	/**
 	 * Создает отсоединенную (открепленную) подпись сообщения
 	 *
-	 * @param   string  $thumbprint   отпечаток сертификата
-	 * @param   string  $messageHash  хеш подписываемого сообщения, сгенерированный по ГОСТ Р 34.11-2012 256 бит
+	 * @param   string       $thumbprint   отпечаток сертификата
+	 * @param   string       $messageHash  хеш подписываемого сообщения, сгенерированный по ГОСТ Р 34.11-2012 256 бит
+	 * @param   string|null  $pin          пин-код доступа к закрытому ключу
 	 *
 	 * @throws \Exception
 	 * @return string подпись в формате PKCS#7
 	 */
-	public static function createDetachedSignature(string $thumbprint, string $messageHash)
+	public static function createDetachedSignature(string $thumbprint, string $messageHash, string $pin = null)
 	{
 		try
 		{
@@ -333,6 +342,11 @@ class CryptoPro
 
 		try
 		{
+			if (!empty($pin))
+			{
+				$cadesSigner->set_KeyPin($pin);
+			}
+
 			$cadesSigner->set_Certificate($cadesCertificate);
 
 			/** @var \CPAttributes $cadesAuthAttrs */
@@ -377,9 +391,14 @@ class CryptoPro
 	/**
 	 * добавляет совмещенную (присоединенную) подпись к раннее подписанному документу (реализует метод coSign)
 	 *
+	 * @param   string       $thumbprint  отпечаток сертификата
+	 * @param   string       $signedMessage
+	 * @param   string|null  $pin         пин-код доступа к закрытому ключу
+	 *
+	 * @throws \Exception
 	 * @return string
 	 */
-	public static function addAttachedSignature(string $thumbprint, string $signedMessage)
+	public static function addAttachedSignature(string $thumbprint, string $signedMessage, string $pin = null)
 	{
 		try
 		{
@@ -417,6 +436,11 @@ class CryptoPro
 
 		try
 		{
+			if (!empty($pin))
+			{
+				$cadesSigner->set_KeyPin($pin);
+			}
+
 			$cadesSigner->set_Certificate($cadesCertificate);
 
 			/** @var \CPAttributes $cadesAuthAttrs */
@@ -450,14 +474,15 @@ class CryptoPro
 	/**
 	 * Добавляет отсоединенную (открепленную) подпись к раннее подписанному документу (реализует метод coSign)
 	 *
-	 * @param   string  $thumbprint     отпечаток сертификата
-	 * @param   string  $signedMessage  подписанное сообщение
-	 * @param   string  $messageHash    хеш подписываемого сообщения, сгенерированный по ГОСТ Р 34.11-2012 256 бит
+	 * @param   string       $thumbprint     отпечаток сертификата
+	 * @param   string       $signedMessage  подписанное сообщение
+	 * @param   string       $messageHash    хеш подписываемого сообщения, сгенерированный по ГОСТ Р 34.11-2012 256 бит
+	 * @param   string|null  $pin            пин-код доступа к закрытому ключу
 	 *
 	 * @throws \Exception
 	 * @return string подпись в формате PKCS#7
 	 */
-	public static function addDetachedSignature(string $thumbprint, string $signedMessage, string $messageHash)
+	public static function addDetachedSignature(string $thumbprint, string $signedMessage, string $messageHash, string $pin = null)
 	{
 		try
 		{
@@ -494,6 +519,11 @@ class CryptoPro
 
 		try
 		{
+			if (!empty($pin))
+			{
+				$cadesSigner->set_KeyPin($pin);
+			}
+
 			$cadesSigner->set_Certificate($cadesCertificate);
 
 			/** @var \CPAttributes $cadesAuthAttrs */
