@@ -84,7 +84,7 @@ class CertificateHelper
 		$commonName   = null;
 		if (preg_match('/CN="?(.+?)"?(?:,|$)/', $subjectName, $subjectMatch))
 		{
-			$commonName = preg_replace('/"{2}/g', '"', $subjectMatch[1]);
+			$commonName = preg_replace('/"{2}/', '"', $subjectMatch[1]);
 		}
 
 		return $commonName;
