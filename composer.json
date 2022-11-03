@@ -1,0 +1,48 @@
+{
+	"name": "webmasterskaya/crypto-pro-php",
+	"type": "library",
+	"description": "Простой PHP API для работы с КриптоПРО CSP (libphpcades).",
+	"keywords": [
+		"cryptopro",
+		"crypto pro",
+		"crypto-pro",
+		"cryptoprophp",
+		"crypto-pro-php",
+		"crypto pro php",
+		"cades",
+		"libphpcades",
+		"КриптоПро",
+		"Крипто ПРО"
+	],
+	"license": "MIT",
+	"homepage": "https://github.com/webmasterskaya/crypto-pro-php",
+	"support": {
+		"issues": "https://github.com/webmasterskaya/crypto-pro-php/issues",
+		"source": "https://github.com/webmasterskaya/crypto-pro-php"
+	},
+	"authors": [
+		{
+			"name": "Artem Vasilev",
+			"email": "kern.usr@gmail.com",
+			"homepage": "https://github.com/kernusr",
+			"role": "Developer"
+		}
+	],
+	"require": {
+		"php": ">7.2 <8.0"
+	},
+	"require-dev": {
+		"monolog/monolog": "^2.8"
+	},
+	"autoload": {
+		"psr-4": {
+			"Webmasterskaya\\CryptoPro\\": "src/"
+		}
+	},
+	"config": {
+		"optimize-autoloader": true,
+		"preferred-install": "dist",
+		"sort-packages": true,
+		"process-timeout": 3600
+	}
+}
