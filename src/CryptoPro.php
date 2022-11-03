@@ -349,7 +349,6 @@ class CryptoPro
 
 			$cadesSigner->set_Certificate($cadesCertificate);
 
-			/** @var \CPAttributes $cadesAuthAttrs */
 			$cadesAuthAttrs = $cadesSigner->get_AuthenticatedAttributes();
 			$cadesAuthAttrs->Add($cadesAttrs);
 
@@ -443,7 +442,6 @@ class CryptoPro
 
 			$cadesSigner->set_Certificate($cadesCertificate);
 
-			/** @var \CPAttributes $cadesAuthAttrs */
 			$cadesAuthAttrs = $cadesSigner->get_AuthenticatedAttributes();
 			$cadesAuthAttrs->Add($cadesAttrs);
 
@@ -526,7 +524,6 @@ class CryptoPro
 
 			$cadesSigner->set_Certificate($cadesCertificate);
 
-			/** @var \CPAttributes $cadesAuthAttrs */
 			$cadesAuthAttrs = $cadesSigner->get_AuthenticatedAttributes();
 			$cadesAuthAttrs->Add($cadesAttrs);
 
@@ -580,7 +577,8 @@ class CryptoPro
 	 *
 	 * @param   string  $unencryptedMessage  сообщение для хеширования
 	 *
-	 * @return void
+	 * @throws \Exception
+	 * @return string
 	 */
 	public static function createHash(string $unencryptedMessage)
 	{
@@ -608,7 +606,6 @@ class CryptoPro
 
 		try
 		{
-			/** @var string $hash */
 			$hash = $cadesHashedData->get_Value();
 		}
 		catch (\Throwable $e)
