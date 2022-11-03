@@ -182,6 +182,7 @@ class Certificate
 	/**
 	 * возвращает ОИД'ы сертификата
 	 *
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function getExtendedKeyUsage()
@@ -216,6 +217,7 @@ class Certificate
 	/**
 	 * возвращает расшифрованные ОИД'ы
 	 *
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function getDecodedExtendedKeyUsage()
