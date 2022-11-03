@@ -2,8 +2,12 @@
 
 namespace Webmasterskaya\CryptoPro;
 
+use Webmasterskaya\CryptoPro\Constants\CAPICOM_CERTIFICATE_FIND_TYPE;
+use Webmasterskaya\CryptoPro\Constants\CAPICOM_PROPID;
 use Webmasterskaya\CryptoPro\Helpers\CertificateHelper;
 use Webmasterskaya\CryptoPro\Helpers\ErrorMessageHelper;
+
+const CONTAINER_STORE = 100;
 
 class CryptoPro
 {
@@ -41,7 +45,7 @@ class CryptoPro
 		static $certificates;
 		if ($resetCache === true || !isset($certificates))
 		{
-			$certificates = self::getCertificatesFromStore(CURRENT_USER_STORE, self::CP_MY_STORE, false, false);
+			$certificates = self::getCertificatesFromStore(CURRENT_USER_STORE, self::CP_MY_STORE, false);
 		}
 
 		return $certificates;
@@ -79,7 +83,7 @@ class CryptoPro
 		static $certificates;
 		if ($resetCache === true || !isset($certificates))
 		{
-			$certificates = self::getCertificatesFromStore(CONTAINER_STORE, self::CP_MY_STORE, false, false);
+			$certificates = self::getCertificatesFromStore(CONTAINER_STORE, self::CP_MY_STORE, false);
 		}
 
 		return $certificates;
@@ -625,9 +629,33 @@ class CryptoPro
 	{
 	}
 
-	protected static function getCertificatesFromStore(
-		int $storeLocation, string $storeName = 'My', bool $validOnly = true, bool $withPrivateKey = true
-	)
+	/**
+	 * @param   int     $storeLocation
+	 * @param   string  $storeName
+	 * @param   bool    $validOnly  Логическое значение , указывающее, возвращаются ли только действительные сертификаты.
+	 *                              Если значение равно true, поиск не вернет следующие типы сертификатов:
+	 *                              <ul>
+	 *                              <li>
+	 *                              Сертификаты, срок действия которых истек или еще не действителен.
+	 *                              </li>
+	 *                              <li>
+	 *                              Сертификаты, в которых отсутствует закрытый ключ.
+	 *                              </li>
+	 *                              <li>
+	 *                              Сертификаты не связаны должным образом.
+	 *                              </li>
+	 *                              <li>
+	 *                              Сертификаты, у которых возникли проблемы с подписью.
+	 *                              </li>
+	 *                              <li>
+	 *                              Отозванные сертификаты.
+	 *                              </li>
+	 *                              </ul>
+	 *
+	 * @throws \Exception
+	 * @return array
+	 */
+	protected static function getCertificatesFromStore(int $storeLocation, string $storeName = 'My', bool $validOnly = true)
 	{
 		$certificates = [];
 
@@ -653,20 +681,19 @@ class CryptoPro
 		{
 			$cadesCertificates = $cadesStore->get_Certificates();
 
-			/**
-			 * Не рассматриваются сертификаты не действительны на данный момент
-			 */
 			if ($validOnly === true)
 			{
-				$cadesCertificates = $cadesCertificates->Find(CERTIFICATE_FIND_TIME_VALID);
-			}
+				$cadesCertificates = $cadesCertificates->Find(
+					CAPICOM_CERTIFICATE_FIND_TYPE::TIME_VALID,
+					'',
+					true
+				);
 
-			/**
-			 * Не рассматриваются сертификаты, в которых отсутствует закрытый ключ
-			 */
-			if ($withPrivateKey === true)
-			{
-				$cadesCertificates = $cadesCertificates->Find(CERTIFICATE_FIND_EXTENDED_PROPERTY, CAPICOM_PROPID_KEY_PROV_INFO);
+				$cadesCertificates = $cadesCertificates->Find(
+					CAPICOM_CERTIFICATE_FIND_TYPE::EXTENDED_PROPERTY,
+					CAPICOM_PROPID::KEY_PROV_INFO,
+					true
+				);
 			}
 
 			$cadesCertificatesCount = $cadesCertificates->Count();
@@ -689,12 +716,12 @@ class CryptoPro
 
 				$certificates[] = new Certificate(
 					$cadesCertificate,
-					CertificateHelper::extractCommonName($cadesCertificate->SubjectName),
-					$cadesCertificate->IssuerName,
-					$cadesCertificate->SubjectName,
-					$cadesCertificate->Thumbprint,
-					$cadesCertificate->ValidFromDate,
-					$cadesCertificate->ValidToDate
+					CertificateHelper::extractCommonName($cadesCertificate->get_SubjectName()),
+					$cadesCertificate->get_IssuerName(),
+					$cadesCertificate->get_SubjectName(),
+					$cadesCertificate->get_Thumbprint(),
+					$cadesCertificate->get_ValidFromDate(),
+					$cadesCertificate->get_ValidToDate()
 				);
 
 				$cadesCertificatesCount--;
