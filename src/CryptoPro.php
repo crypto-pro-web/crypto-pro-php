@@ -228,14 +228,7 @@ class CryptoPro
 	 */
 	public static function createAttachedSignature(string $thumbprint, string $unencryptedMessage, string $pin = null)
 	{
-		try
-		{
-			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CURRENT_USER_STORE);
-		}
-		catch (\Throwable $e)
-		{
-			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CONTAINER_STORE);
-		}
+		$cadesCertificate = self::getCadesCertificate($thumbprint);
 
 		try
 		{
@@ -248,7 +241,8 @@ class CryptoPro
 			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при инициализации подписи'));
 		}
 
-		$currentDateTime = (new \DateTime())->format('d.m.Y H:i:s');
+		// Дату и время устанавливаем в формате generalizedTime https://docs.cryptopro.ru/pki/cplib/class/cdatetime?id=cdatetime-1
+		$currentDateTime = (new \DateTime())->format('YmdHis.u') . 'Z';
 
 		try
 		{
@@ -289,7 +283,12 @@ class CryptoPro
 		try
 		{
 			/** @var string $signature */
-			$signature = $cadesSignedData->SignCades($cadesSigner, PKCS7_TYPE);
+			$signature = $cadesSignedData->SignCades(
+				$cadesSigner,
+				PKCS7_TYPE,
+				false,
+				ENCODE_BASE64
+			);
 		}
 		catch (\Throwable $e)
 		{
@@ -311,14 +310,7 @@ class CryptoPro
 	 */
 	public static function createDetachedSignature(string $thumbprint, string $messageHash, string $pin = null)
 	{
-		try
-		{
-			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CURRENT_USER_STORE);
-		}
-		catch (\Throwable $e)
-		{
-			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CONTAINER_STORE);
-		}
+		$cadesCertificate = self::getCadesCertificate($thumbprint);
 
 		try
 		{
@@ -332,7 +324,8 @@ class CryptoPro
 			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при инициализации подписи'));
 		}
 
-		$currentDateTime = (new \DateTime())->format('d.m.Y H:i:s');
+		// Дату и время устанавливаем в формате generalizedTime https://docs.cryptopro.ru/pki/cplib/class/cdatetime?id=cdatetime-1
+		$currentDateTime = (new \DateTime())->format('YmdHis.u') . 'Z';
 
 		try
 		{
@@ -403,14 +396,7 @@ class CryptoPro
 	 */
 	public static function addAttachedSignature(string $thumbprint, string $signedMessage, string $pin = null)
 	{
-		try
-		{
-			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CURRENT_USER_STORE);
-		}
-		catch (\Throwable $e)
-		{
-			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CONTAINER_STORE);
-		}
+		$cadesCertificate = self::getCadesCertificate($thumbprint);
 
 		try
 		{
@@ -423,7 +409,8 @@ class CryptoPro
 			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при инициализации подписи'));
 		}
 
-		$currentDateTime = (new \DateTime())->format('d.m.Y H:i:s');
+		// Дату и время устанавливаем в формате generalizedTime https://docs.cryptopro.ru/pki/cplib/class/cdatetime?id=cdatetime-1
+		$currentDateTime = (new \DateTime())->format('YmdHis.u') . 'Z';
 
 		try
 		{
@@ -486,14 +473,7 @@ class CryptoPro
 	 */
 	public static function addDetachedSignature(string $thumbprint, string $signedMessage, string $messageHash, string $pin = null)
 	{
-		try
-		{
-			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CURRENT_USER_STORE);
-		}
-		catch (\Throwable $e)
-		{
-			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CONTAINER_STORE);
-		}
+		$cadesCertificate = self::getCadesCertificate($thumbprint);
 
 		try
 		{
@@ -507,7 +487,8 @@ class CryptoPro
 			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при инициализации подписи'));
 		}
 
-		$currentDateTime = (new \DateTime())->format('d.m.Y H:i:s');
+		// Дату и время устанавливаем в формате generalizedTime https://docs.cryptopro.ru/pki/cplib/class/cdatetime?id=cdatetime-1
+		$currentDateTime = (new \DateTime())->format('YmdHis.u') . 'Z';
 
 		try
 		{
@@ -774,7 +755,11 @@ class CryptoPro
 
 		try
 		{
-			$cadesCertificates = $cadesCertificates->Find(CERTIFICATE_FIND_SHA1_HASH, $thumbprint);
+			$cadesCertificates = $cadesCertificates->Find(
+				CAPICOM_CERTIFICATE_FIND_TYPE::SHA1_HASH,
+				$thumbprint,
+				false
+			);
 
 			$cadesCertificatesCount = $cadesCertificates->Count();
 
@@ -783,6 +768,7 @@ class CryptoPro
 				throw new \Exception('Сертификат с отпечатком: "' . $thumbprint . '" не найден в хранилище');
 			}
 
+			// Считаем, что первый сертификат, найденный по отпечатку - наш
 			$cadesCertificate = $cadesCertificates->Item(1);
 		}
 		catch (\Throwable $e)
@@ -829,5 +815,37 @@ class CryptoPro
 				}
 			}
 		}
+	}
+
+	/**
+	 * Возвращает сертификат в формате Cades по отпечатку.
+	 * Сначала ищет в хранилище пользователя, потм - в хранилище закрытого ключа
+	 *
+	 * @param   string  $thumbprint
+	 *
+	 * @throws \Exception
+	 * @return \CPCertificate
+	 */
+	protected static function getCadesCertificate(string $thumbprint)
+	{
+		try
+		{
+			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CURRENT_USER_STORE);
+		}
+		catch (\Throwable $e)
+		{
+			$previousException = $e;
+
+			try
+			{
+				$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CONTAINER_STORE);
+			}
+			catch (\Throwable $e)
+			{
+				throw new \Exception($e->getMessage(), $e->getCode(), $previousException);
+			}
+		}
+
+		return $cadesCertificate;
 	}
 }
