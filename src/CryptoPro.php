@@ -174,12 +174,11 @@ class CryptoPro
 	 * Возвращает сертификат по отпечатку
 	 *
 	 * @param   string  $thumbprint  отпечаток сертификата
-	 * @param   bool    $validOnly   проверять сертификат по дате и наличию приватного ключа
 	 *
 	 * @throws \Exception
 	 * @return Certificate
 	 */
-	public static function getCertificate(string $thumbprint, bool $validOnly = true)
+	public static function getCertificate(string $thumbprint)
 	{
 		$thumbprint = trim($thumbprint);
 
@@ -188,14 +187,7 @@ class CryptoPro
 			throw new \Exception('Отпечаток не указан');
 		}
 
-		if ($validOnly === true)
-		{
-			$certificates = self::getCertificates();
-		}
-		else
-		{
-			$certificates = self::getAllCertificates();
-		}
+		$certificates = self::getAllCertificates();
 
 		$found = false;
 
