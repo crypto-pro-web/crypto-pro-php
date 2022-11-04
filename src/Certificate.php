@@ -2,15 +2,12 @@
 
 namespace Webmasterskaya\CryptoPro;
 
-use Webmasterskaya\CryptoPro\Constants\OIDsDictionary;
 use Webmasterskaya\CryptoPro\Dictionary\IssuerTagsDictionary;
+use Webmasterskaya\CryptoPro\Dictionary\OIDDictionary;
 use Webmasterskaya\CryptoPro\Dictionary\SubjectTagsDictionary;
 use Webmasterskaya\CryptoPro\Helpers\ArrayHelper;
 use Webmasterskaya\CryptoPro\Helpers\CertificateHelper;
 use Webmasterskaya\CryptoPro\Helpers\ErrorMessageHelper;
-use Webmasterskaya\CryptoPro\Tags\IssuerTagsTranslations;
-use Webmasterskaya\CryptoPro\Tags\SubjectTagsTranslations;
-use Webmasterskaya\CryptoPro\Tags\TagsTranslationsInterface;
 
 class Certificate
 {
@@ -190,7 +187,7 @@ class Certificate
 				while ($cadesExtendedKeysUsageCount)
 				{
 					$cadesExtendedKeyUsage = $cadesExtendedKeysUsage->get_Item($cadesExtendedKeysUsageCount);
-					$OIDs[]                = $cadesExtendedKeyUsage->get_OID();
+					$OIDs[]                = trim($cadesExtendedKeyUsage->get_OID());
 
 					$cadesExtendedKeysUsageCount--;
 				}
@@ -218,7 +215,8 @@ class Certificate
 
 		foreach ($certOIDs as $OID)
 		{
-			$decodedOIDs[$OID] = OIDsDictionary::MAP[$OID] ?? null;
+			$dictionaryItem    = OIDDictionary::getByOID($OID);
+			$decodedOIDs[$OID] = $dictionaryItem ? $dictionaryItem->title ?? null : null;
 		}
 
 		return $decodedOIDs;
