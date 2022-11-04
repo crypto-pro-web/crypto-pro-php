@@ -1,0 +1,57 @@
+<?php
+
+namespace Webmasterskaya\CryptoPro\Dictionary;
+
+trait TitleAwareTrait
+{
+	public static function getByTitle(string $title)
+	{
+		$title = mb_strtolower(trim($title));
+
+		$map = self::getTitleMap();
+
+		return isset($map[$title]) ? self::getResult($map[$title]) : null;
+	}
+
+	protected static function getTitleMap()
+	{
+		static $titleMap;
+
+		if (!isset($titleMap))
+		{
+			foreach (self::MAP as $row)
+			{
+				if (isset($row['title_variants']))
+				{
+					if (is_string($row['title_variants']))
+					{
+						$variant            = mb_strtolower($row['title_variants']);
+						$titleMap[$variant] = $row;
+					}
+					else
+					{
+						foreach ($row['title_variants'] as $variant)
+						{
+							$variant            = mb_strtolower($variant);
+							$titleMap[$variant] = $row;
+						}
+					}
+				}
+
+				if (isset($row['title']))
+				{
+					$variant            = mb_strtolower($row['title']);
+					$titleMap[$variant] = $row;
+				}
+
+				if (isset($row['RDN']))
+				{
+					$variant            = mb_strtolower($row['RDN']);
+					$titleMap[$variant] = $row;
+				}
+			}
+		}
+
+		return $titleMap;
+	}
+}
