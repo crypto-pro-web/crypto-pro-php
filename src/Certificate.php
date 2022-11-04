@@ -102,7 +102,7 @@ class Certificate
 	 * возвращает информацию об алгоритме сертификата
 	 *
 	 * @throws \Exception
-	 * @return AlgorithmInfoInterface
+	 * @return array
 	 */
 	public function getAlgorithm()
 	{
@@ -110,10 +110,10 @@ class Certificate
 		{
 			$cadesPublicKey          = $this->_cadesCertificate->PublicKey();
 			$cadesPublicKeyAlgorithm = $cadesPublicKey->get_Algorithm();
-			$algorithmInfo           = new class(
-				$cadesPublicKeyAlgorithm->get_FriendlyName(),
-				$cadesPublicKeyAlgorithm->get_Value()) extends AbstractAlgorithmInfo {
-			};
+			$algorithmInfo           = [
+				'algorithm' => $cadesPublicKeyAlgorithm->get_FriendlyName(),
+				'oid'       => $cadesPublicKeyAlgorithm->get_Value(),
+			];
 		}
 		catch (\Throwable $e)
 		{
