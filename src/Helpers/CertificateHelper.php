@@ -2,31 +2,37 @@
 
 namespace Webmasterskaya\CryptoPro\Helpers;
 
-use Webmasterskaya\CryptoPro\Tags\TagsCodes;
-use Webmasterskaya\CryptoPro\Tags\TagsOIDs;
-use Webmasterskaya\CryptoPro\Tags\TagsTranslationsInterface;
+use Webmasterskaya\CryptoPro\Dictionary\DictionaryInterface;
 
 class CertificateHelper
 {
-	public static function parseCertInfo($tagsTranslations, string $rawInfo)
+	public static function parseCertInfo($dictionary, string $rawInfo)
 	{
-		if (!is_subclass_of($tagsTranslations, TagsTranslationsInterface::class))
+		$implements = class_implements($dictionary);
+
+		if (!isset($implements[DictionaryInterface::class]))
 		{
 			throw new \TypeError(
 				sprintf(
-					'Argument 1 passed to %s::parseCertInfo() must be an instance of \Webmasterskaya\CryptoPro\Tags\TagsTranslationsInterface, instance of %s given.',
-					get_called_class(), $tagsTranslations
+					'Argument 1 passed to %s::parseCertInfo() must implement %s',
+					get_called_class(), DictionaryInterface::class
 				)
 			);
 		}
 
 		$extractedEntities = [];
 
-		preg_match_all('/([а-яА-Яa-zA-Z0-9\s.]+)=(?:("[^"]+?")|(.+?))(?:,|$)/', $rawInfo, $extractedEntities, PREG_SET_ORDER, 0);
+		preg_match_all(
+			'/([\w0-9\s.]+)=(?:("[^"]+?")|(.+?))(?:,|$)/',
+			$rawInfo,
+			$extractedEntities,
+			PREG_SET_ORDER,
+			0
+		);
 
 		if (!empty($extractedEntities))
 		{
-			return array_map(function ($extractedEntity) use ($tagsTranslations) {
+			return array_map(function ($extractedEntity) use ($dictionary) {
 
 				$title = trim($extractedEntity[1]);
 
@@ -38,40 +44,41 @@ class CertificateHelper
 					$oidIdentifier = trim($oidIdentifierMatch[1]);
 				}
 
-				// Если нашли OID в заголовке, пытаемся его расшифровать
+				// Если нашли OID то декодируем по нему
 				if (!empty($oidIdentifier))
 				{
-					$titleCode = TagsOIDs::codeByOid($oidIdentifier);
-
-					if (empty($titleCode))
-					{
-						$titleCode = 'OID.' . $oidIdentifier;
-					}
+					$dictionaryItem = $dictionary::getByOID($oidIdentifier);
 				}
 				else
 				{
-					$titleCode = TagsCodes::codeByName($title);
-
-					if (empty($titleCode))
-					{
-						$titleCode = $title;
-					}
+					$dictionaryItem = $dictionary::getByTitle($title);
 				}
 
+				$result = [];
+
 				// Получаем человекочитаемый заголовок
-				$title = $tagsTranslations::translationByCode($titleCode);
+				if ($dictionaryItem !== null)
+				{
+					$title = $dictionaryItem->title ?? $title;
+					$rdn   = $dictionaryItem->RDN ?? null;
+					$oid   = $dictionaryItem->OID ?? null;
+				}
 
 				// Вырезаем лишние кавычки
 				$description = preg_replace(
-					'/"{2}/g', '"',
+					'/"{2}/', '"',
 					preg_replace(
 						'/^"(.*)"/', "$1",
-						trim($extractedEntity[2] ?? $extractedEntity[3])
+						trim($extractedEntity[2] ?: $extractedEntity[3])
 					)
 				);
 
-				return ['title' => $title, 'description' => $description, 'code' => $titleCode];
-
+				return [
+					'title'       => $title,
+					'description' => $description,
+					'RDN'         => $rdn ?? null,
+					'OID'         => $oid ?? null
+				];
 			}, $extractedEntities);
 		}
 

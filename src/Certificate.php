@@ -3,6 +3,8 @@
 namespace Webmasterskaya\CryptoPro;
 
 use Webmasterskaya\CryptoPro\Constants\OIDsDictionary;
+use Webmasterskaya\CryptoPro\Dictionary\IssuerTagsDictionary;
+use Webmasterskaya\CryptoPro\Dictionary\SubjectTagsDictionary;
 use Webmasterskaya\CryptoPro\Helpers\ArrayHelper;
 use Webmasterskaya\CryptoPro\Helpers\CertificateHelper;
 use Webmasterskaya\CryptoPro\Helpers\ErrorMessageHelper;
@@ -132,40 +134,28 @@ class Certificate
 	 */
 	public function getOwnerInfo()
 	{
-		return $this->getInfo(SubjectTagsTranslations::class, 'SubjectName');
+		return $this->getInfo(SubjectTagsDictionary::class, 'SubjectName');
 	}
 
 	/**
-	 * @param   string  $tags
+	 * @param   string  $dictionary
 	 * @param   string  $entitiesPath
 	 *
 	 * @throws \Exception
 	 * @return array|array[]
 	 */
-	protected function getInfo(string $tags, string $entitiesPath)
+	protected function getInfo(string $dictionary, string $entitiesPath)
 	{
-		if (!is_subclass_of($tags, TagsTranslationsInterface::class))
+		try
 		{
-			throw new \TypeError(
-				sprintf(
-					'Argument 1 passed to %s::getInfo() must be an instance of \Webmasterskaya\CryptoPro\Tags\TagsTranslationsInterface, instance of %s given.',
-					get_called_class(), $tags
-				)
-			);
+			$entities = $this->getCadesProp($entitiesPath);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при извлечении информации из сертификата'));
 		}
 
-		{
-			try
-			{
-				$entities = $this->getCadesProp($entitiesPath);
-			}
-			catch (\Throwable $e)
-			{
-				throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при извлечении информации из сертификата'));
-			}
-		}
-
-		return CertificateHelper::parseCertInfo($tags, $entities);
+		return CertificateHelper::parseCertInfo($dictionary, $entities);
 	}
 
 	/**
@@ -176,7 +166,7 @@ class Certificate
 	 */
 	public function getIssuerInfo()
 	{
-		return $this->getInfo(IssuerTagsTranslations::class, 'IssuerName');
+		return $this->getInfo(IssuerTagsDictionary::class, 'IssuerName');
 	}
 
 	/**
