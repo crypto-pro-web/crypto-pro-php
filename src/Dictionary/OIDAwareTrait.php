@@ -8,9 +8,9 @@ trait OIDAwareTrait
 	{
 		$oid = mb_strtolower(trim($oid));
 
-		$map = self::getOIDMap();
+		$map = static::getOIDMap();
 
-		return isset($map[$oid]) ? self::getResult($map[$oid]) : null;
+		return isset($map[$oid]) ? static::getResult($map[$oid]) : null;
 	}
 
 	protected static function getOIDMap()
@@ -19,12 +19,15 @@ trait OIDAwareTrait
 
 		if (!isset($OIDMap))
 		{
-			foreach (self::MAP as $row)
+			foreach (static::getMap() as $row)
 			{
 				if (isset($row['OID']))
 				{
-					$variant          = mb_strtolower($row['OID']);
-					$OIDMap[$variant] = $row;
+					$variant = mb_strtolower($row['OID']);
+					if (!isset($OIDMap[$variant]))
+					{
+						$OIDMap[$variant] = $row;
+					}
 				}
 			}
 		}

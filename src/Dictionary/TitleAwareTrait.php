@@ -8,9 +8,9 @@ trait TitleAwareTrait
 	{
 		$title = mb_strtolower(trim($title));
 
-		$map = self::getTitleMap();
+		$map = static::getTitleMap();
 
-		return isset($map[$title]) ? self::getResult($map[$title]) : null;
+		return isset($map[$title]) ? static::getResult($map[$title]) : null;
 	}
 
 	protected static function getTitleMap()
@@ -19,35 +19,47 @@ trait TitleAwareTrait
 
 		if (!isset($titleMap))
 		{
-			foreach (self::MAP as $row)
+			foreach (static::getMap() as $row)
 			{
 				if (isset($row['title_variants']))
 				{
 					if (is_string($row['title_variants']))
 					{
-						$variant            = mb_strtolower($row['title_variants']);
-						$titleMap[$variant] = $row;
+						$variant = mb_strtolower($row['title_variants']);
+						if (!isset($titleMap[$variant]))
+						{
+							$titleMap[$variant] = $row;
+						}
 					}
 					else
 					{
 						foreach ($row['title_variants'] as $variant)
 						{
-							$variant            = mb_strtolower($variant);
-							$titleMap[$variant] = $row;
+							$variant = mb_strtolower($variant);
+							if (!isset($titleMap[$variant]))
+							{
+								$titleMap[$variant] = $row;
+							}
 						}
 					}
 				}
 
 				if (isset($row['title']))
 				{
-					$variant            = mb_strtolower($row['title']);
-					$titleMap[$variant] = $row;
+					$variant = mb_strtolower($row['title']);
+					if (!isset($titleMap[$variant]))
+					{
+						$titleMap[$variant] = $row;
+					}
 				}
 
 				if (isset($row['RDN']))
 				{
-					$variant            = mb_strtolower($row['RDN']);
-					$titleMap[$variant] = $row;
+					$variant = mb_strtolower($row['RDN']);
+					if (!isset($titleMap[$variant]))
+					{
+						$titleMap[$variant] = $row;
+					}
 				}
 			}
 		}

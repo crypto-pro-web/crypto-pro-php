@@ -8,9 +8,9 @@ trait RDNAwareTrait
 	{
 		$RDN = mb_strtolower(trim($RDN));
 
-		$map = self::getRDNMap();
+		$map = static::getRDNMap();
 
-		return isset($map[$RDN]) ? self::getResult($map[$RDN]) : null;
+		return isset($map[$RDN]) ? static::getResult($map[$RDN]) : null;
 	}
 
 	protected static function getRDNMap()
@@ -19,12 +19,15 @@ trait RDNAwareTrait
 
 		if (!isset($RDNMap))
 		{
-			foreach (self::MAP as $row)
+			foreach (static::getMap() as $row)
 			{
 				if (isset($row['RDN']))
 				{
-					$variant          = mb_strtolower($row['RDN']);
-					$RDNMap[$variant] = $row;
+					$variant = mb_strtolower($row['RDN']);
+					if (!isset($RDNMap[$variant]))
+					{
+						$RDNMap[$variant] = $row;
+					}
 				}
 			}
 		}

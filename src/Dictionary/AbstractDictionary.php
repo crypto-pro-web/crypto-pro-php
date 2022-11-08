@@ -29,4 +29,20 @@ abstract class AbstractDictionary implements DictionaryInterface
 
 		return DictionaryItem::getItem($options);
 	}
+
+	public static function getMap()
+	{
+		$map = [];
+
+		$class = static::class;
+
+		do
+		{
+			array_push($map, ...$class::MAP);
+		} while (($class = get_parent_class($class)) != self::class);
+
+		array_push($map, ...$class::MAP);
+
+		return $map;
+	}
 }
