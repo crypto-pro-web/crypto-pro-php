@@ -180,6 +180,7 @@ class CryptoPro
 	 */
 	public static function getCertificate(string $thumbprint)
 	{
+		$thumbprint = mb_strtoupper($thumbprint);
 		$thumbprint = trim($thumbprint);
 
 		if (!$thumbprint)
@@ -712,6 +713,9 @@ class CryptoPro
 
 	protected static function getCadesCertificateFromStore(string $thumbprint, int $storeLocation, string $storeName = 'My')
 	{
+		$thumbprint = mb_strtoupper($thumbprint);
+		$thumbprint = trim($thumbprint);
+
 		try
 		{
 			$cadesStore = new \CPStore();
