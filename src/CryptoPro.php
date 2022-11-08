@@ -879,53 +879,7 @@ class CryptoPro
 			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при проверке подписи'));
 		}
 
-		try
-		{
-			$cadesSigners      = $cadesSignedData->get_Signers();
-			$cadesSignersCount = (int) $cadesSigners->get_Count();
-		}
-		catch (\Throwable $e)
-		{
-			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка получения списка подписантов'));
-		}
-
-		if (!$cadesSignersCount)
-		{
-			throw new \Exception('Нет доступных подписантов');
-		}
-
-		$signers = [];
-
-		try
-		{
-			while ($cadesSignersCount)
-			{
-				$cadesSigner      = $cadesSigners->get_Item($cadesSignersCount);
-				$cadesCertificate = $cadesSigner->get_Certificate();
-				$certificate      = new Certificate(
-					$cadesCertificate,
-					CertificateHelper::extractCommonName($cadesCertificate->get_SubjectName()),
-					$cadesCertificate->get_IssuerName(),
-					$cadesCertificate->get_SubjectName(),
-					$cadesCertificate->get_Thumbprint(),
-					$cadesCertificate->get_ValidFromDate(),
-					$cadesCertificate->get_ValidToDate()
-				);
-
-				$signers[] = [
-					'signing_time' => $cadesSigner->get_SigningTime(),
-					'certificate'  => $certificate
-				];
-
-				$cadesSignersCount--;
-			}
-		}
-		catch (\Throwable $e)
-		{
-			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при чтении информации о подписанте'));
-		}
-
-		return $signers;
+		return static::getSigners($cadesSignedData);
 	}
 
 	/**
@@ -973,6 +927,19 @@ class CryptoPro
 			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при проверке подписи'));
 		}
 
+		return static::getSigners($cadesSignedData);
+	}
+
+	/**
+	 * Извлекает из подписи данные о подписантах
+	 *
+	 * @param   \CPSignedData  $cadesSignedData  подписанные данные
+	 *
+	 * @throws \Exception
+	 * @return array информация о подписантах
+	 */
+	protected static function getSigners(\CPSignedData $cadesSignedData)
+	{
 		try
 		{
 			$cadesSigners      = $cadesSignedData->get_Signers();
