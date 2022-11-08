@@ -3,6 +3,7 @@
 namespace Webmasterskaya\CryptoPro;
 
 use Webmasterskaya\CryptoPro\Constants\CAPICOM_CERTIFICATE_FIND_TYPE;
+use Webmasterskaya\CryptoPro\Constants\CAPICOM_ENCODE;
 use Webmasterskaya\CryptoPro\Constants\CAPICOM_PROPID;
 use Webmasterskaya\CryptoPro\Helpers\CertificateHelper;
 use Webmasterskaya\CryptoPro\Helpers\ErrorMessageHelper;
@@ -258,7 +259,6 @@ class CryptoPro
 
 			$cadesSigner->set_Certificate($cadesCertificate);
 
-			/** @var \CPAttributes $cadesAuthAttrs */
 			$cadesAuthAttrs = $cadesSigner->get_AuthenticatedAttributes();
 			$cadesAuthAttrs->Add($cadesAttrs);
 
@@ -266,7 +266,6 @@ class CryptoPro
 			$cadesSignedData->set_Content($messageBase64);
 
 			$cadesSigner->set_Options(CERTIFICATE_INCLUDE_WHOLE_CHAIN);
-
 		}
 		catch (\Throwable $e)
 		{
@@ -280,7 +279,7 @@ class CryptoPro
 				$cadesSigner,
 				PKCS7_TYPE,
 				false,
-				ENCODE_BASE64
+				CAPICOM_ENCODE::BASE64
 			);
 		}
 		catch (\Throwable $e)
@@ -367,7 +366,13 @@ class CryptoPro
 
 		try
 		{
-			$signature = $cadesSignedData->SignHash($cadesHashedData, $cadesSigner, PKCS7_TYPE);
+			/** @var string $signature */
+			$signature = $cadesSignedData->SignHash(
+				$cadesHashedData,
+				$cadesSigner,
+				PKCS7_TYPE,
+				CAPICOM_ENCODE::BASE64
+			);
 		}
 		catch (\Throwable $e)
 		{
@@ -843,5 +848,177 @@ class CryptoPro
 		}
 
 		return $cadesCertificate;
+	}
+
+	/**
+	 * Проверяет присоеденённую подпись и возвращает информацию о подписантах
+	 *
+	 * @param   string  $signedMessage  подписанное сообщение
+	 *
+	 * @throws \Exception
+	 * @return array Информация о подписантах
+	 */
+	public static function verifyAttachedSignature(string $signedMessage)
+	{
+		try
+		{
+			$cadesSignedData = new \CPSignedData();
+			$cadesSignedData->set_Content($signedMessage);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при инициализации проверки подписи'));
+		}
+
+		try
+		{
+			$cadesSignedData->VerifyCades($signedMessage, CADES_BES, false);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при проверке подписи'));
+		}
+
+		try
+		{
+			$cadesSigners      = $cadesSignedData->get_Signers();
+			$cadesSignersCount = (int) $cadesSigners->get_Count();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка получения списка подписантов'));
+		}
+
+		if (!$cadesSignersCount)
+		{
+			throw new \Exception('Нет доступных подписантов');
+		}
+
+		$signers = [];
+
+		try
+		{
+			while ($cadesSignersCount)
+			{
+				$cadesSigner      = $cadesSigners->get_Item($cadesSignersCount);
+				$cadesCertificate = $cadesSigner->get_Certificate();
+				$certificate      = new Certificate(
+					$cadesCertificate,
+					CertificateHelper::extractCommonName($cadesCertificate->get_SubjectName()),
+					$cadesCertificate->get_IssuerName(),
+					$cadesCertificate->get_SubjectName(),
+					$cadesCertificate->get_Thumbprint(),
+					$cadesCertificate->get_ValidFromDate(),
+					$cadesCertificate->get_ValidToDate()
+				);
+
+				$signers[] = [
+					'signing_time' => $cadesSigner->get_SigningTime(),
+					'certificate'  => $certificate
+				];
+
+				$cadesSignersCount--;
+			}
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при чтении информации о подписанте'));
+		}
+
+		return $signers;
+	}
+
+	/**
+	 * Проверяет отсоеденённую подпись по значению хэш-функции и возвращает информацию о подписантах
+	 *
+	 * @param   string  $signedMessage  подписанное сообщение
+	 * @param   string  $messageHash    хеш подписываемого сообщения, сгенерированный по ГОСТ Р 34.11-2012 256 бит
+	 *
+	 * @throws \Exception
+	 * @return array Информация о подписантах
+	 */
+	public static function verifyDetachedSignature(string $signedMessage, string $messageHash)
+	{
+		try
+		{
+			$cadesSignedData = new \CPSignedData();
+			$cadesHashedData = new \CPHashedData();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при инициализации проверки подписи'));
+		}
+
+		try
+		{
+			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM_CP_GOST_3411_2012_256);
+			$cadesHashedData->SetHashValue($messageHash);
+
+			// Для получения объекта отсоединенной (открепленной) подписи, необходимо задать любой контент.
+			// Этот баг описан на форуме.
+			// https://www.cryptopro.ru/forum2/default.aspx?g=posts&m=78553#post78553
+			$cadesSignedData->set_Content(123);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при установке хеша'));
+		}
+
+		try
+		{
+			$cadesSignedData->VerifyHash($cadesHashedData, $signedMessage, PKCS7_TYPE);
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при проверке подписи'));
+		}
+
+		try
+		{
+			$cadesSigners      = $cadesSignedData->get_Signers();
+			$cadesSignersCount = (int) $cadesSigners->get_Count();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка получения списка подписантов'));
+		}
+
+		if (!$cadesSignersCount)
+		{
+			throw new \Exception('Нет доступных подписантов');
+		}
+
+		$signers = [];
+
+		try
+		{
+			while ($cadesSignersCount)
+			{
+				$cadesSigner      = $cadesSigners->get_Item($cadesSignersCount);
+				$cadesCertificate = $cadesSigner->get_Certificate();
+				$certificate      = new Certificate(
+					$cadesCertificate,
+					CertificateHelper::extractCommonName($cadesCertificate->get_SubjectName()),
+					$cadesCertificate->get_IssuerName(),
+					$cadesCertificate->get_SubjectName(),
+					$cadesCertificate->get_Thumbprint(),
+					$cadesCertificate->get_ValidFromDate(),
+					$cadesCertificate->get_ValidToDate()
+				);
+
+				$signers[] = [
+					'signing_time' => $cadesSigner->get_SigningTime(),
+					'certificate'  => $certificate
+				];
+
+				$cadesSignersCount--;
+			}
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при чтении информации о подписанте'));
+		}
+
+		return $signers;
 	}
 }
