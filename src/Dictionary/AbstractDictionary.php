@@ -12,17 +12,17 @@ abstract class AbstractDictionary implements DictionaryInterface
 
 		$options = [];
 
-		if (!!$implements[TitleAwareInterface::class])
+		if (in_array(TitleAwareInterface::class, $implements))
 		{
 			$options['title'] = $data['title'] ?? null;
 		}
 
-		if (!!$implements[OIDAwareInterface::class])
+		if (in_array(OIDAwareInterface::class, $implements))
 		{
 			$options['OID'] = $data['OID'] ?? null;
 		}
 
-		if (!!$implements[RDNAwareInterface::class])
+		if (in_array(RDNAwareInterface::class, $implements))
 		{
 			$options['RDN'] = $data['RDN'] ?? null;
 		}
