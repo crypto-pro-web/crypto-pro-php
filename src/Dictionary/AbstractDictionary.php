@@ -38,10 +38,10 @@ abstract class AbstractDictionary implements DictionaryInterface
 
 		do
 		{
-			array_push($map, ...$class::MAP);
+			array_push($map, ...constant($class . '::MAP'));
 		} while (($class = get_parent_class($class)) != self::class);
 
-		array_push($map, ...$class::MAP);
+		array_push($map, ...constant($class . '::MAP'));
 
 		return $map;
 	}
