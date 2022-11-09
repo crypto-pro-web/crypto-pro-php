@@ -2,13 +2,17 @@
 
 namespace Webmasterskaya\CryptoPro;
 
+use Webmasterskaya\CryptoPro\Constants\CADESCOM_ATTRIBUTE;
+use Webmasterskaya\CryptoPro\Constants\CADESCOM_CADES_TYPE;
+use Webmasterskaya\CryptoPro\Constants\CADESCOM_CONTENT_ENCODING_TYPE;
+use Webmasterskaya\CryptoPro\Constants\CADESCOM_ENCODE;
+use Webmasterskaya\CryptoPro\Constants\CADESCOM_HASH_ALGORITHM;
+use Webmasterskaya\CryptoPro\Constants\CADESCOM_STORE_LOCATION;
 use Webmasterskaya\CryptoPro\Constants\CAPICOM_CERTIFICATE_FIND_TYPE;
-use Webmasterskaya\CryptoPro\Constants\CAPICOM_ENCODE;
+use Webmasterskaya\CryptoPro\Constants\CAPICOM_CERTIFICATE_INCLUDE_OPTION;
 use Webmasterskaya\CryptoPro\Constants\CAPICOM_PROPID;
 use Webmasterskaya\CryptoPro\Helpers\CertificateHelper;
 use Webmasterskaya\CryptoPro\Helpers\ErrorMessageHelper;
-
-const CONTAINER_STORE = 100;
 
 class CryptoPro
 {
@@ -25,9 +29,10 @@ class CryptoPro
 	public static function getUserCertificates(bool $resetCache = false)
 	{
 		static $certificates;
+
 		if ($resetCache === true || !isset($certificates))
 		{
-			$certificates = self::getCertificatesFromStore(CURRENT_USER_STORE);
+			$certificates = self::getCertificatesFromStore(CADESCOM_STORE_LOCATION::CURRENT_USER_STORE);
 		}
 
 		return $certificates;
@@ -44,9 +49,14 @@ class CryptoPro
 	public static function getAllUserCertificates(bool $resetCache = false)
 	{
 		static $certificates;
+
 		if ($resetCache === true || !isset($certificates))
 		{
-			$certificates = self::getCertificatesFromStore(CURRENT_USER_STORE, self::CP_MY_STORE, false);
+			$certificates = self::getCertificatesFromStore(
+				CADESCOM_STORE_LOCATION::CURRENT_USER_STORE,
+				self::CP_MY_STORE,
+				false
+			);
 		}
 
 		return $certificates;
@@ -63,9 +73,10 @@ class CryptoPro
 	public static function getContainerCertificates(bool $resetCache = false)
 	{
 		static $certificates;
+
 		if ($resetCache === true || !isset($certificates))
 		{
-			$certificates = self::getCertificatesFromStore(CONTAINER_STORE);
+			$certificates = self::getCertificatesFromStore(CADESCOM_STORE_LOCATION::CONTAINER_STORE);
 		}
 
 		return $certificates;
@@ -82,9 +93,14 @@ class CryptoPro
 	public static function getAllContainerCertificates(bool $resetCache = false)
 	{
 		static $certificates;
+
 		if ($resetCache === true || !isset($certificates))
 		{
-			$certificates = self::getCertificatesFromStore(CONTAINER_STORE, self::CP_MY_STORE, false);
+			$certificates = self::getCertificatesFromStore(
+				CADESCOM_STORE_LOCATION::CONTAINER_STORE,
+				self::CP_MY_STORE,
+				false
+			);
 		}
 
 		return $certificates;
@@ -100,6 +116,7 @@ class CryptoPro
 	public static function getCertificates(bool $resetCache = false)
 	{
 		static $certificates;
+
 		if ($resetCache === true || !isset($certificates))
 		{
 			$availableCertificates = [];
@@ -141,6 +158,7 @@ class CryptoPro
 	public static function getAllCertificates(bool $resetCache = false)
 	{
 		static $certificates;
+
 		if ($resetCache === true || !isset($certificates))
 		{
 			$availableCertificates = [];
@@ -222,6 +240,7 @@ class CryptoPro
 	 */
 	public static function createAttachedSignature(string $thumbprint, string $unencryptedMessage, string $pin = null)
 	{
+		/** @noinspection DuplicatedCode */
 		$cadesCertificate = self::getCadesCertificate($thumbprint);
 
 		try
@@ -240,7 +259,7 @@ class CryptoPro
 
 		try
 		{
-			$cadesAttrs->set_Name(AUTHENTICATED_ATTRIBUTE_SIGNING_TIME);
+			$cadesAttrs->set_Name(CADESCOM_ATTRIBUTE::SIGNING_TIME);
 			$cadesAttrs->set_Value($currentDateTime);
 		}
 		catch (\Throwable $e)
@@ -262,10 +281,10 @@ class CryptoPro
 			$cadesAuthAttrs = $cadesSigner->get_AuthenticatedAttributes();
 			$cadesAuthAttrs->Add($cadesAttrs);
 
-			$cadesSignedData->set_ContentEncoding(BASE64_TO_BINARY);
+			$cadesSignedData->set_ContentEncoding(CADESCOM_CONTENT_ENCODING_TYPE::BASE64_TO_BINARY);
 			$cadesSignedData->set_Content($messageBase64);
 
-			$cadesSigner->set_Options(CERTIFICATE_INCLUDE_WHOLE_CHAIN);
+			$cadesSigner->set_Options(CAPICOM_CERTIFICATE_INCLUDE_OPTION::WHOLE_CHAIN);
 		}
 		catch (\Throwable $e)
 		{
@@ -277,9 +296,9 @@ class CryptoPro
 			/** @var string $signature */
 			$signature = $cadesSignedData->SignCades(
 				$cadesSigner,
-				PKCS7_TYPE,
+				CADESCOM_CADES_TYPE::PKCS7_TYPE,
 				false,
-				CAPICOM_ENCODE::BASE64
+				CADESCOM_ENCODE::BASE64
 			);
 		}
 		catch (\Throwable $e)
@@ -302,6 +321,7 @@ class CryptoPro
 	 */
 	public static function createDetachedSignature(string $thumbprint, string $messageHash, string $pin = null)
 	{
+		/** @noinspection DuplicatedCode */
 		$cadesCertificate = self::getCadesCertificate($thumbprint);
 
 		try
@@ -321,7 +341,7 @@ class CryptoPro
 
 		try
 		{
-			$cadesAttrs->set_Name(AUTHENTICATED_ATTRIBUTE_SIGNING_TIME);
+			$cadesAttrs->set_Name(CADESCOM_ATTRIBUTE::SIGNING_TIME);
 			$cadesAttrs->set_Value($currentDateTime);
 		}
 		catch (\Throwable $e)
@@ -341,7 +361,7 @@ class CryptoPro
 			$cadesAuthAttrs = $cadesSigner->get_AuthenticatedAttributes();
 			$cadesAuthAttrs->Add($cadesAttrs);
 
-			$cadesSigner->set_Options(CERTIFICATE_INCLUDE_WHOLE_CHAIN);
+			$cadesSigner->set_Options(CAPICOM_CERTIFICATE_INCLUDE_OPTION::WHOLE_CHAIN);
 
 		}
 		catch (\Throwable $e)
@@ -351,7 +371,7 @@ class CryptoPro
 
 		try
 		{
-			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM_CP_GOST_3411_2012_256);
+			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM::HASH_CP_GOST_3411_2012_256);
 			$cadesHashedData->SetHashValue($messageHash);
 
 			// Для получения объекта отсоединенной (открепленной) подписи, необходимо задать любой контент.
@@ -370,8 +390,8 @@ class CryptoPro
 			$signature = $cadesSignedData->SignHash(
 				$cadesHashedData,
 				$cadesSigner,
-				PKCS7_TYPE,
-				CAPICOM_ENCODE::BASE64
+				CADESCOM_CADES_TYPE::PKCS7_TYPE,
+				CADESCOM_ENCODE::BASE64
 			);
 		}
 		catch (\Throwable $e)
@@ -394,6 +414,7 @@ class CryptoPro
 	 */
 	public static function addAttachedSignature(string $thumbprint, string $signedMessage, string $pin = null)
 	{
+		/** @noinspection DuplicatedCode */
 		$cadesCertificate = self::getCadesCertificate($thumbprint);
 
 		try
@@ -412,7 +433,7 @@ class CryptoPro
 
 		try
 		{
-			$cadesAttrs->set_Name(AUTHENTICATED_ATTRIBUTE_SIGNING_TIME);
+			$cadesAttrs->set_Name(CADESCOM_ATTRIBUTE::SIGNING_TIME);
 			$cadesAttrs->set_Value($currentDateTime);
 		}
 		catch (\Throwable $e)
@@ -434,11 +455,10 @@ class CryptoPro
 			$cadesAuthAttrs = $cadesSigner->get_AuthenticatedAttributes();
 			$cadesAuthAttrs->Add($cadesAttrs);
 
-			$cadesSignedData->set_ContentEncoding(BASE64_TO_BINARY);
+			$cadesSignedData->set_ContentEncoding(CADESCOM_CONTENT_ENCODING_TYPE::BASE64_TO_BINARY);
 			$cadesSignedData->set_Content($messageBase64);
 
-			$cadesSigner->set_Options(CERTIFICATE_INCLUDE_WHOLE_CHAIN);
-
+			$cadesSigner->set_Options(CAPICOM_CERTIFICATE_INCLUDE_OPTION::WHOLE_CHAIN);
 		}
 		catch (\Throwable $e)
 		{
@@ -447,8 +467,17 @@ class CryptoPro
 
 		try
 		{
-			$cadesSignedData->VerifyCades($signedMessage, PKCS7_TYPE);
-			$signature = $cadesSignedData->CoSignCades($cadesSigner, PKCS7_TYPE);
+			$cadesSignedData->VerifyCades(
+				$signedMessage,
+				CADESCOM_CADES_TYPE::PKCS7_TYPE,
+				false
+			);
+
+			$signature = $cadesSignedData->CoSignCades(
+				$cadesSigner,
+				CADESCOM_CADES_TYPE::PKCS7_TYPE,
+				CADESCOM_ENCODE::BASE64
+			);
 		}
 		catch (\Throwable $e)
 		{
@@ -471,6 +500,7 @@ class CryptoPro
 	 */
 	public static function addDetachedSignature(string $thumbprint, string $signedMessage, string $messageHash, string $pin = null)
 	{
+		/** @noinspection DuplicatedCode */
 		$cadesCertificate = self::getCadesCertificate($thumbprint);
 
 		try
@@ -490,7 +520,7 @@ class CryptoPro
 
 		try
 		{
-			$cadesAttrs->set_Name(AUTHENTICATED_ATTRIBUTE_SIGNING_TIME);
+			$cadesAttrs->set_Name(CADESCOM_ATTRIBUTE::SIGNING_TIME);
 			$cadesAttrs->set_Value($currentDateTime);
 		}
 		catch (\Throwable $e)
@@ -510,7 +540,7 @@ class CryptoPro
 			$cadesAuthAttrs = $cadesSigner->get_AuthenticatedAttributes();
 			$cadesAuthAttrs->Add($cadesAttrs);
 
-			$cadesSigner->set_Options(CERTIFICATE_INCLUDE_WHOLE_CHAIN);
+			$cadesSigner->set_Options(CAPICOM_CERTIFICATE_INCLUDE_OPTION::WHOLE_CHAIN);
 		}
 		catch (\Throwable $e)
 		{
@@ -519,7 +549,7 @@ class CryptoPro
 
 		try
 		{
-			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM_CP_GOST_3411_2012_256);
+			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM::HASH_CP_GOST_3411_2012_256);
 			$cadesHashedData->SetHashValue($messageHash);
 
 			// Для получения объекта отсоединенной (открепленной) подписи, необходимо задать любой контент.
@@ -534,9 +564,17 @@ class CryptoPro
 
 		try
 		{
-			$cadesSignedData->VerifyHash($cadesHashedData, $signedMessage, PKCS7_TYPE);
+			$cadesSignedData->VerifyHash(
+				$cadesHashedData,
+				$signedMessage,
+				CADESCOM_CADES_TYPE::PKCS7_TYPE
+			);
 
-			$signature = $cadesSignedData->CoSignHash($cadesHashedData, $cadesSigner, PKCS7_TYPE);
+			$signature = $cadesSignedData->CoSignHash(
+				$cadesHashedData,
+				$cadesSigner,
+				CADESCOM_CADES_TYPE::PKCS7_TYPE
+			);
 		}
 		catch (\Throwable $e)
 		{
@@ -544,15 +582,6 @@ class CryptoPro
 		}
 
 		return $signature;
-	}
-
-	/**
-	 * создает XML подпись для документа в формате XML
-	 *
-	 * @return void
-	 */
-	public static function createXMLSignature()
-	{
 	}
 
 	/**
@@ -831,7 +860,7 @@ class CryptoPro
 	{
 		try
 		{
-			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CURRENT_USER_STORE);
+			$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CADESCOM_STORE_LOCATION::CURRENT_USER_STORE);
 		}
 		catch (\Throwable $e)
 		{
@@ -839,7 +868,7 @@ class CryptoPro
 
 			try
 			{
-				$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CONTAINER_STORE);
+				$cadesCertificate = self::getCadesCertificateFromStore($thumbprint, CADESCOM_STORE_LOCATION::CONTAINER_STORE);
 			}
 			catch (\Throwable $e)
 			{
@@ -920,7 +949,7 @@ class CryptoPro
 
 		try
 		{
-			$cadesSignedData->VerifyHash($cadesHashedData, $signedMessage, PKCS7_TYPE);
+			$cadesSignedData->VerifyHash($cadesHashedData, $signedMessage, CADESCOM_CADES_TYPE::PKCS7_TYPE);
 		}
 		catch (\Throwable $e)
 		{
