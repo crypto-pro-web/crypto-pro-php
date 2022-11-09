@@ -571,9 +571,10 @@ class CryptoPro
 			);
 
 			$signature = $cadesSignedData->CoSignHash(
-				$cadesHashedData,
 				$cadesSigner,
-				CADESCOM_CADES_TYPE::PKCS7_TYPE
+				$cadesHashedData,
+				CADESCOM_CADES_TYPE::PKCS7_TYPE,
+				CADESCOM_ENCODE::BASE64
 			);
 		}
 		catch (\Throwable $e)
