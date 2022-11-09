@@ -691,16 +691,18 @@ class CryptoPro
 
 			if ($validOnly === true)
 			{
+				$currentDateTime = (new \DateTime())->format('YmdHis.u') . 'Z';
+
 				$cadesCertificates = $cadesCertificates->Find(
 					CAPICOM_CERTIFICATE_FIND_TYPE::TIME_VALID,
-					'',
+					$currentDateTime,
 					true
 				);
 
 				$cadesCertificates = $cadesCertificates->Find(
 					CAPICOM_CERTIFICATE_FIND_TYPE::EXTENDED_PROPERTY,
 					CAPICOM_PROPID::KEY_PROV_INFO,
-					true
+					false
 				);
 			}
 
