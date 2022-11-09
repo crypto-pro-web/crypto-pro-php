@@ -33,7 +33,8 @@
 		"ext-mbstring": "*"
 	},
 	"require-dev": {
-		"monolog/monolog": "^2.8"
+		"phpstan/phpstan": "^1.9",
+		"webmasterskaya/crypto-pro-php-stubs": "^1.0"
 	},
 	"autoload": {
 		"psr-4": {
@@ -45,5 +46,8 @@
 		"preferred-install": "dist",
 		"sort-packages": true,
 		"process-timeout": 3600
+	},
+	"scripts": {
+		"phpstan": "phpstan analyse"
 	}
 }
