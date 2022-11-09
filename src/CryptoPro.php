@@ -24,7 +24,7 @@ class CryptoPro
 	 * @param   bool  $resetCache  Сбросить кэш. true - повторно получить список сертификатов из хранилища
 	 *
 	 * @throws \Exception
-	 * @return void
+	 * @return Certificate[]
 	 */
 	public static function getUserCertificates(bool $resetCache = false)
 	{
@@ -44,7 +44,7 @@ class CryptoPro
 	 * @param   bool  $resetCache  Сбросить кэш. true - повторно получить список сертификатов из хранилища
 	 *
 	 * @throws \Exception
-	 * @return void
+	 * @return Certificate[]
 	 */
 	public static function getAllUserCertificates(bool $resetCache = false)
 	{
@@ -68,7 +68,7 @@ class CryptoPro
 	 * @param   bool  $resetCache  Сбросить кэш. true - повторно получить список сертификатов из хранилища
 	 *
 	 * @throws \Exception
-	 * @return void
+	 * @return Certificate[]
 	 */
 	public static function getContainerCertificates(bool $resetCache = false)
 	{
@@ -88,7 +88,7 @@ class CryptoPro
 	 * @param   bool  $resetCache  Сбросить кэш. true - повторно получить список сертификатов из хранилища
 	 *
 	 * @throws \Exception
-	 * @return void
+	 * @return Certificate[]
 	 */
 	public static function getAllContainerCertificates(bool $resetCache = false)
 	{
@@ -111,7 +111,7 @@ class CryptoPro
 	 *
 	 * @param   bool  $resetCache  Сбросить кэш. true - повторно получить список сертификатов из хранилища
 	 *
-	 * @return array
+	 * @return Certificate[]
 	 */
 	public static function getCertificates(bool $resetCache = false)
 	{
@@ -153,7 +153,7 @@ class CryptoPro
 	 *
 	 * @param   bool  $resetCache  Сбросить кэш. true - повторно получить список сертификатов из хранилища
 	 *
-	 * @return array
+	 * @return Certificate[]
 	 */
 	public static function getAllCertificates(bool $resetCache = false)
 	{
@@ -608,7 +608,7 @@ class CryptoPro
 
 		try
 		{
-			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM_CP_GOST_3411_2012_256);
+			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM::HASH_CP_GOST_3411_2012_256);
 			$cadesHashedData->set_DataEncoding(BASE64_TO_BINARY);
 			$cadesHashedData->Hash($messageBase64);
 		}
@@ -748,6 +748,14 @@ class CryptoPro
 		return $certificates;
 	}
 
+	/**
+	 * @param   string  $thumbprint
+	 * @param   int     $storeLocation
+	 * @param   string  $storeName
+	 *
+	 * @throws \Exception
+	 * @return \CPCertificate
+	 */
 	protected static function getCadesCertificateFromStore(string $thumbprint, int $storeLocation, string $storeName = 'My')
 	{
 		$thumbprint = mb_strtoupper($thumbprint);
