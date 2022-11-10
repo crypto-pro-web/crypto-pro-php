@@ -49,7 +49,7 @@ jobs:
           - "7.4"
     steps:
       - name: "Cancel Previous Runs"
-        uses: styfle/cancel-workflow-action@0.9.1
+        uses: styfle/cancel-workflow-action
         with:
           all_but_latest: true
           access_token: ${{ github.token }}
