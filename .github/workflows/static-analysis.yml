@@ -1,8 +1,6 @@
 name: "Static analysis code"
 
-on:
-  push:
-  pull_request:
+on: [push, pull_request]
 
 env:
   COMPOSER_FLAGS: "--ansi --prefer-dist --no-interaction --no-progress"
