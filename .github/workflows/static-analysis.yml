@@ -81,7 +81,7 @@ jobs:
         run: |
           composer install ${{ env.COMPOSER_FLAGS }}
           rm composer.lock
-          composer config platform.php ${{ matrix.php }}
+          composer config platform.php ${{ matrix.php-version }}
 
       - name: Run phpstan
         run: composer phpstan
