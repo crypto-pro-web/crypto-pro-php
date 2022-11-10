@@ -68,16 +68,16 @@
         },
         {
             "name": "webmasterskaya/crypto-pro-php-stubs",
-            "version": "1.0.2",
+            "version": "1.0.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webmasterskaya/crypto-pro-php-stubs.git",
-                "reference": "cc216cfde1eafdab824996ef629df4db1c658834"
+                "reference": "72a6e1160ab96c12888333d89e35059233cb9eb0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webmasterskaya/crypto-pro-php-stubs/zipball/cc216cfde1eafdab824996ef629df4db1c658834",
-                "reference": "cc216cfde1eafdab824996ef629df4db1c658834",
+                "url": "https://api.github.com/repos/webmasterskaya/crypto-pro-php-stubs/zipball/72a6e1160ab96c12888333d89e35059233cb9eb0",
+                "reference": "72a6e1160ab96c12888333d89e35059233cb9eb0",
                 "shasum": ""
             },
             "require": {
@@ -116,7 +116,7 @@
                 "issues": "https://github.com/webmasterskaya/crypto-pro-php-stubs/issues",
                 "source": "https://github.com/webmasterskaya/crypto-pro-php-stubs"
             },
-            "time": "2022-11-09T18:59:03+00:00"
+            "time": "2022-11-10T08:45:00+00:00"
         }
     ],
     "aliases": [],
