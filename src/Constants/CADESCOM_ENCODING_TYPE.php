@@ -5,7 +5,7 @@ namespace Webmasterskaya\CryptoPro\Constants;
 /**
  * Тип перечисления CADESCOM_ENCODING_TYPE указывает используемый тип кодирования.
  */
-class CADESCOM_ENCODE
+class CADESCOM_ENCODING_TYPE
 {
 	/**
 	 * Данные сохраняются в виде строки в кодировке Base64.
