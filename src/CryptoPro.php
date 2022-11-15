@@ -5,12 +5,13 @@ namespace Webmasterskaya\CryptoPro;
 use Webmasterskaya\CryptoPro\Constants\CADESCOM_ATTRIBUTE;
 use Webmasterskaya\CryptoPro\Constants\CADESCOM_CADES_TYPE;
 use Webmasterskaya\CryptoPro\Constants\CADESCOM_CONTENT_ENCODING_TYPE;
-use Webmasterskaya\CryptoPro\Constants\CADESCOM_ENCODE;
+use Webmasterskaya\CryptoPro\Constants\CADESCOM_ENCODING_TYPE;
 use Webmasterskaya\CryptoPro\Constants\CADESCOM_HASH_ALGORITHM;
 use Webmasterskaya\CryptoPro\Constants\CADESCOM_STORE_LOCATION;
 use Webmasterskaya\CryptoPro\Constants\CAPICOM_CERTIFICATE_FIND_TYPE;
 use Webmasterskaya\CryptoPro\Constants\CAPICOM_CERTIFICATE_INCLUDE_OPTION;
 use Webmasterskaya\CryptoPro\Constants\CAPICOM_PROPID;
+use Webmasterskaya\CryptoPro\Constants\CAPICOM_STORE_OPEN_MODE;
 use Webmasterskaya\CryptoPro\Helpers\CertificateHelper;
 use Webmasterskaya\CryptoPro\Helpers\ErrorMessageHelper;
 
@@ -298,7 +299,7 @@ class CryptoPro
 				$cadesSigner,
 				CADESCOM_CADES_TYPE::PKCS7_TYPE,
 				false,
-				CADESCOM_ENCODE::BASE64
+				CADESCOM_ENCODING_TYPE::BASE64
 			);
 		}
 		catch (\Throwable $e)
@@ -362,7 +363,6 @@ class CryptoPro
 			$cadesAuthAttrs->Add($cadesAttrs);
 
 			$cadesSigner->set_Options(CAPICOM_CERTIFICATE_INCLUDE_OPTION::WHOLE_CHAIN);
-
 		}
 		catch (\Throwable $e)
 		{
@@ -372,8 +372,10 @@ class CryptoPro
 		try
 		{
 			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM::HASH_CP_GOST_3411_2012_256);
+			$cadesHashedData->set_DataEncoding(CADESCOM_CONTENT_ENCODING_TYPE::BASE64_TO_BINARY);
 			$cadesHashedData->SetHashValue($messageHash);
 
+			$cadesSignedData->set_ContentEncoding(CADESCOM_CONTENT_ENCODING_TYPE::BASE64_TO_BINARY);
 			// Для получения объекта отсоединенной (открепленной) подписи, необходимо задать любой контент.
 			// Этот баг описан на форуме.
 			// https://www.cryptopro.ru/forum2/default.aspx?g=posts&m=78553#post78553
@@ -391,7 +393,7 @@ class CryptoPro
 				$cadesHashedData,
 				$cadesSigner,
 				CADESCOM_CADES_TYPE::PKCS7_TYPE,
-				CADESCOM_ENCODE::BASE64
+				CADESCOM_ENCODING_TYPE::BASE64
 			);
 		}
 		catch (\Throwable $e)
@@ -476,7 +478,7 @@ class CryptoPro
 			$signature = $cadesSignedData->CoSignCades(
 				$cadesSigner,
 				CADESCOM_CADES_TYPE::PKCS7_TYPE,
-				CADESCOM_ENCODE::BASE64
+				CADESCOM_ENCODING_TYPE::BASE64
 			);
 		}
 		catch (\Throwable $e)
@@ -550,8 +552,10 @@ class CryptoPro
 		try
 		{
 			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM::HASH_CP_GOST_3411_2012_256);
+			$cadesHashedData->set_DataEncoding(CADESCOM_CONTENT_ENCODING_TYPE::BASE64_TO_BINARY);
 			$cadesHashedData->SetHashValue($messageHash);
 
+			$cadesSignedData->set_ContentEncoding(CADESCOM_CONTENT_ENCODING_TYPE::BASE64_TO_BINARY);
 			// Для получения объекта отсоединенной (открепленной) подписи, необходимо задать любой контент.
 			// Этот баг описан на форуме.
 			// https://www.cryptopro.ru/forum2/default.aspx?g=posts&m=78553#post78553
@@ -574,7 +578,7 @@ class CryptoPro
 				$cadesSigner,
 				$cadesHashedData,
 				CADESCOM_CADES_TYPE::PKCS7_TYPE,
-				CADESCOM_ENCODE::BASE64
+				CADESCOM_ENCODING_TYPE::BASE64
 			);
 		}
 		catch (\Throwable $e)
@@ -609,7 +613,7 @@ class CryptoPro
 		try
 		{
 			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM::HASH_CP_GOST_3411_2012_256);
-			$cadesHashedData->set_DataEncoding(BASE64_TO_BINARY);
+			$cadesHashedData->set_DataEncoding(CADESCOM_CONTENT_ENCODING_TYPE::BASE64_TO_BINARY);
 			$cadesHashedData->Hash($messageBase64);
 		}
 		catch (\Throwable $e)
@@ -679,7 +683,7 @@ class CryptoPro
 
 		try
 		{
-			$cadesStore->Open($storeLocation, $storeName, STORE_OPEN_MAXIMUM_ALLOWED);
+			$cadesStore->Open($storeLocation, $storeName, CAPICOM_STORE_OPEN_MODE::MAXIMUM_ALLOWED);
 		}
 		catch (\Throwable $e)
 		{
@@ -772,7 +776,7 @@ class CryptoPro
 
 		try
 		{
-			$cadesStore->Open($storeLocation, $storeName, STORE_OPEN_MAXIMUM_ALLOWED);
+			$cadesStore->Open($storeLocation, $storeName, CAPICOM_STORE_OPEN_MODE::MAXIMUM_ALLOWED);
 		}
 		catch (\Throwable $e)
 		{
