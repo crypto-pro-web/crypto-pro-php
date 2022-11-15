@@ -54,7 +54,7 @@ class CryptoPro
 		{
 			$certificates = self::getCertificatesFromStore(
 				CADESCOM_STORE_LOCATION::CURRENT_USER_STORE,
-				self::CP_MY_STORE,
+				static::CP_MY_STORE,
 				false
 			);
 		}
@@ -98,7 +98,7 @@ class CryptoPro
 		{
 			$certificates = self::getCertificatesFromStore(
 				CADESCOM_STORE_LOCATION::CONTAINER_STORE,
-				self::CP_MY_STORE,
+				static::CP_MY_STORE,
 				false
 			);
 		}
