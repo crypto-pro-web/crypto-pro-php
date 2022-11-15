@@ -634,12 +634,95 @@ class CryptoPro
 	}
 
 	/**
-	 * возвращает информацию о CSP и плагине
+	 * Возвращает информацию о CSP и плагине
 	 *
-	 * @return void
+	 * @throws \Exception
+	 * @return array
 	 */
 	public static function getSystemInfo()
 	{
+		try
+		{
+			$about = new \About();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при получении информации о системе'));
+		}
+
+		try
+		{
+			$cadesVersion = $about->PluginVersion();
+
+			if ($cadesVersion instanceof \Version)
+			{
+				$cadesVersion = $cadesVersion->toString();
+			}
+
+			if (!$cadesVersion)
+			{
+				$cadesVersion = $about->get_Version();
+			}
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при получении информации о плагине'));
+		}
+
+		try
+		{
+			$cspVersion = $about->CSPVersion();
+			$cspVersion = $cspVersion->toString();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при получении информации о CSP'));
+		}
+
+		return [
+			'cadesVersion' => $cadesVersion,
+			'cspVersion'   => $cspVersion,
+		];
+	}
+
+	/**
+	 * Проверяет корректность настроек средств ЭП
+	 *
+	 * @throws \Exception
+	 * @return true
+	 */
+	public static function isValidSystemSetup()
+	{
+		$systemInfo = static::getSystemInfo();
+
+		$extractedCadesVersion = [];
+
+		if (!preg_match('/(\d+)\.(\d+)\.(\d+)/', $systemInfo['cadesVersion'], $extractedCadesVersion))
+		{
+			throw new \Exception('Ошибка чтеня версии плагина');
+		}
+
+		list(, $cadesVersionMajor, $cadesVersionMinor, $cadesVersionPatch) = $extractedCadesVersion;
+
+		if ((int) $cadesVersionMajor < 2
+			|| ((int) $cadesVersionMajor === 2 && (int) $cadesVersionMinor === 0 && (int) $cadesVersionPatch < 12438))
+		{
+			throw new \Exception('Не поддерживаемая версия плагина');
+		}
+
+		if (!preg_match('/(\d+)\.(\d+)\.(\d+)/', $systemInfo['cspVersion'], $extractedCSPVersion))
+		{
+			throw new \Exception('Ошибка чтеня версии CSP');
+		}
+
+		list(, $cspVersionMajor, $cspVersionMinor, $cspVersionPatch) = $extractedCSPVersion;
+
+		if ((int) $cspVersionMajor < 4)
+		{
+			throw new \Exception('Не поддерживаемая версия CSP');
+		}
+
+		return true;
 	}
 
 	/**
