@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f3e18e3b232f3c425afb730e38714eea",
+    "content-hash": "41cee9532212142277f16725a26986f3",
     "packages": [],
     "packages-dev": [
         {
@@ -68,16 +68,16 @@
         },
         {
             "name": "webmasterskaya/crypto-pro-php-stubs",
-            "version": "1.0.3",
+            "version": "1.0.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webmasterskaya/crypto-pro-php-stubs.git",
-                "reference": "72a6e1160ab96c12888333d89e35059233cb9eb0"
+                "reference": "0bf897d4a4d9b092999aa310e8ab2b8d26acd530"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webmasterskaya/crypto-pro-php-stubs/zipball/72a6e1160ab96c12888333d89e35059233cb9eb0",
-                "reference": "72a6e1160ab96c12888333d89e35059233cb9eb0",
+                "url": "https://api.github.com/repos/webmasterskaya/crypto-pro-php-stubs/zipball/0bf897d4a4d9b092999aa310e8ab2b8d26acd530",
+                "reference": "0bf897d4a4d9b092999aa310e8ab2b8d26acd530",
                 "shasum": ""
             },
             "require": {
@@ -116,7 +116,7 @@
                 "issues": "https://github.com/webmasterskaya/crypto-pro-php-stubs/issues",
                 "source": "https://github.com/webmasterskaya/crypto-pro-php-stubs"
             },
-            "time": "2022-11-10T08:45:00+00:00"
+            "time": "2022-11-15T09:19:03+00:00"
         }
     ],
     "aliases": [],
@@ -125,7 +125,7 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": ">7.2 <8.0",
+        "php": ">=7.2 <8.0",
         "ext-mbstring": "*"
     },
     "platform-dev": [],

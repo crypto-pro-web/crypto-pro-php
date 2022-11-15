@@ -5,12 +5,13 @@ namespace Webmasterskaya\CryptoPro;
 use Webmasterskaya\CryptoPro\Constants\CADESCOM_ATTRIBUTE;
 use Webmasterskaya\CryptoPro\Constants\CADESCOM_CADES_TYPE;
 use Webmasterskaya\CryptoPro\Constants\CADESCOM_CONTENT_ENCODING_TYPE;
-use Webmasterskaya\CryptoPro\Constants\CADESCOM_ENCODE;
+use Webmasterskaya\CryptoPro\Constants\CADESCOM_ENCODING_TYPE;
 use Webmasterskaya\CryptoPro\Constants\CADESCOM_HASH_ALGORITHM;
 use Webmasterskaya\CryptoPro\Constants\CADESCOM_STORE_LOCATION;
 use Webmasterskaya\CryptoPro\Constants\CAPICOM_CERTIFICATE_FIND_TYPE;
 use Webmasterskaya\CryptoPro\Constants\CAPICOM_CERTIFICATE_INCLUDE_OPTION;
 use Webmasterskaya\CryptoPro\Constants\CAPICOM_PROPID;
+use Webmasterskaya\CryptoPro\Constants\CAPICOM_STORE_OPEN_MODE;
 use Webmasterskaya\CryptoPro\Helpers\CertificateHelper;
 use Webmasterskaya\CryptoPro\Helpers\ErrorMessageHelper;
 
@@ -54,7 +55,7 @@ class CryptoPro
 		{
 			$certificates = self::getCertificatesFromStore(
 				CADESCOM_STORE_LOCATION::CURRENT_USER_STORE,
-				self::CP_MY_STORE,
+				static::CP_MY_STORE,
 				false
 			);
 		}
@@ -98,7 +99,7 @@ class CryptoPro
 		{
 			$certificates = self::getCertificatesFromStore(
 				CADESCOM_STORE_LOCATION::CONTAINER_STORE,
-				self::CP_MY_STORE,
+				static::CP_MY_STORE,
 				false
 			);
 		}
@@ -298,7 +299,7 @@ class CryptoPro
 				$cadesSigner,
 				CADESCOM_CADES_TYPE::PKCS7_TYPE,
 				false,
-				CADESCOM_ENCODE::BASE64
+				CADESCOM_ENCODING_TYPE::BASE64
 			);
 		}
 		catch (\Throwable $e)
@@ -362,7 +363,6 @@ class CryptoPro
 			$cadesAuthAttrs->Add($cadesAttrs);
 
 			$cadesSigner->set_Options(CAPICOM_CERTIFICATE_INCLUDE_OPTION::WHOLE_CHAIN);
-
 		}
 		catch (\Throwable $e)
 		{
@@ -372,8 +372,10 @@ class CryptoPro
 		try
 		{
 			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM::HASH_CP_GOST_3411_2012_256);
+			$cadesHashedData->set_DataEncoding(CADESCOM_CONTENT_ENCODING_TYPE::BASE64_TO_BINARY);
 			$cadesHashedData->SetHashValue($messageHash);
 
+			$cadesSignedData->set_ContentEncoding(CADESCOM_CONTENT_ENCODING_TYPE::BASE64_TO_BINARY);
 			// Для получения объекта отсоединенной (открепленной) подписи, необходимо задать любой контент.
 			// Этот баг описан на форуме.
 			// https://www.cryptopro.ru/forum2/default.aspx?g=posts&m=78553#post78553
@@ -391,7 +393,7 @@ class CryptoPro
 				$cadesHashedData,
 				$cadesSigner,
 				CADESCOM_CADES_TYPE::PKCS7_TYPE,
-				CADESCOM_ENCODE::BASE64
+				CADESCOM_ENCODING_TYPE::BASE64
 			);
 		}
 		catch (\Throwable $e)
@@ -476,7 +478,7 @@ class CryptoPro
 			$signature = $cadesSignedData->CoSignCades(
 				$cadesSigner,
 				CADESCOM_CADES_TYPE::PKCS7_TYPE,
-				CADESCOM_ENCODE::BASE64
+				CADESCOM_ENCODING_TYPE::BASE64
 			);
 		}
 		catch (\Throwable $e)
@@ -550,8 +552,10 @@ class CryptoPro
 		try
 		{
 			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM::HASH_CP_GOST_3411_2012_256);
+			$cadesHashedData->set_DataEncoding(CADESCOM_CONTENT_ENCODING_TYPE::BASE64_TO_BINARY);
 			$cadesHashedData->SetHashValue($messageHash);
 
+			$cadesSignedData->set_ContentEncoding(CADESCOM_CONTENT_ENCODING_TYPE::BASE64_TO_BINARY);
 			// Для получения объекта отсоединенной (открепленной) подписи, необходимо задать любой контент.
 			// Этот баг описан на форуме.
 			// https://www.cryptopro.ru/forum2/default.aspx?g=posts&m=78553#post78553
@@ -574,7 +578,7 @@ class CryptoPro
 				$cadesSigner,
 				$cadesHashedData,
 				CADESCOM_CADES_TYPE::PKCS7_TYPE,
-				CADESCOM_ENCODE::BASE64
+				CADESCOM_ENCODING_TYPE::BASE64
 			);
 		}
 		catch (\Throwable $e)
@@ -609,7 +613,7 @@ class CryptoPro
 		try
 		{
 			$cadesHashedData->set_Algorithm(CADESCOM_HASH_ALGORITHM::HASH_CP_GOST_3411_2012_256);
-			$cadesHashedData->set_DataEncoding(BASE64_TO_BINARY);
+			$cadesHashedData->set_DataEncoding(CADESCOM_CONTENT_ENCODING_TYPE::BASE64_TO_BINARY);
 			$cadesHashedData->Hash($messageBase64);
 		}
 		catch (\Throwable $e)
@@ -630,12 +634,95 @@ class CryptoPro
 	}
 
 	/**
-	 * возвращает информацию о CSP и плагине
+	 * Возвращает информацию о CSP и плагине
 	 *
-	 * @return void
+	 * @throws \Exception
+	 * @return array
 	 */
 	public static function getSystemInfo()
 	{
+		try
+		{
+			$about = new \About();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при получении информации о системе'));
+		}
+
+		try
+		{
+			$cadesVersion = $about->PluginVersion();
+
+			if ($cadesVersion instanceof \Version)
+			{
+				$cadesVersion = $cadesVersion->toString();
+			}
+
+			if (!$cadesVersion)
+			{
+				$cadesVersion = $about->get_Version();
+			}
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при получении информации о плагине'));
+		}
+
+		try
+		{
+			$cspVersion = $about->CSPVersion();
+			$cspVersion = $cspVersion->toString();
+		}
+		catch (\Throwable $e)
+		{
+			throw new \Exception(ErrorMessageHelper::getErrorMessage($e, 'Ошибка при получении информации о CSP'));
+		}
+
+		return [
+			'cadesVersion' => $cadesVersion,
+			'cspVersion'   => $cspVersion,
+		];
+	}
+
+	/**
+	 * Проверяет корректность настроек средств ЭП
+	 *
+	 * @throws \Exception
+	 * @return true
+	 */
+	public static function isValidSystemSetup()
+	{
+		$systemInfo = static::getSystemInfo();
+
+		$extractedCadesVersion = [];
+
+		if (!preg_match('/(\d+)\.(\d+)\.(\d+)/', $systemInfo['cadesVersion'], $extractedCadesVersion))
+		{
+			throw new \Exception('Ошибка чтеня версии плагина');
+		}
+
+		list(, $cadesVersionMajor, $cadesVersionMinor, $cadesVersionPatch) = $extractedCadesVersion;
+
+		if ((int) $cadesVersionMajor < 2
+			|| ((int) $cadesVersionMajor === 2 && (int) $cadesVersionMinor === 0 && (int) $cadesVersionPatch < 12438))
+		{
+			throw new \Exception('Не поддерживаемая версия плагина');
+		}
+
+		if (!preg_match('/(\d+)\.(\d+)\.(\d+)/', $systemInfo['cspVersion'], $extractedCSPVersion))
+		{
+			throw new \Exception('Ошибка чтеня версии CSP');
+		}
+
+		list(, $cspVersionMajor, $cspVersionMinor, $cspVersionPatch) = $extractedCSPVersion;
+
+		if ((int) $cspVersionMajor < 4)
+		{
+			throw new \Exception('Не поддерживаемая версия CSP');
+		}
+
+		return true;
 	}
 
 	/**
@@ -679,7 +766,7 @@ class CryptoPro
 
 		try
 		{
-			$cadesStore->Open($storeLocation, $storeName, STORE_OPEN_MAXIMUM_ALLOWED);
+			$cadesStore->Open($storeLocation, $storeName, CAPICOM_STORE_OPEN_MODE::MAXIMUM_ALLOWED);
 		}
 		catch (\Throwable $e)
 		{
@@ -772,7 +859,7 @@ class CryptoPro
 
 		try
 		{
-			$cadesStore->Open($storeLocation, $storeName, STORE_OPEN_MAXIMUM_ALLOWED);
+			$cadesStore->Open($storeLocation, $storeName, CAPICOM_STORE_OPEN_MODE::MAXIMUM_ALLOWED);
 		}
 		catch (\Throwable $e)
 		{
