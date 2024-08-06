@@ -23,7 +23,7 @@ class CertificateHelper
 		$extractedEntities = [];
 
 		preg_match_all(
-			'/([\w0-9\s.]+)=(?:("[^"]+?")|(.+?))(?:,|$)/',
+			'/([a-zа-я0-9\s.]+)=(?:("[^"]+?")|(.+?))(?:,|$)/i',
 			$rawInfo,
 			$extractedEntities,
 			PREG_SET_ORDER,
